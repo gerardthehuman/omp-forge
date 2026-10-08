@@ -40,10 +40,10 @@ Mapped fields: names, context/output limits, text/image inputs, tool support, re
 
 These models use different request/response contracts and are not registered as chat models:
 
-| Output | Metadata endpoint on OpenRouter | Execution endpoint on OpenRouter |
-| --- | --- | --- |
-| Image | `/api/v1/images/models` | `POST /api/v1/images` |
-| Video | `/api/v1/videos/models` | `POST /api/v1/videos`, then poll the job |
+| Output    | Metadata endpoint on OpenRouter              | Execution endpoint on OpenRouter                   |
+| --------- | -------------------------------------------- | -------------------------------------------------- |
+| Image     | `/api/v1/images/models`                      | `POST /api/v1/images`                              |
+| Video     | `/api/v1/videos/models`                      | `POST /api/v1/videos`, then poll the job           |
 | Decisions | `/api/v1/models?output_modalities=decisions` | `POST /api/alpha/decisions` or `/api/v1/systemone` |
 
 References: [images](https://openrouter.ai/docs/guides/overview/multimodal/image-generation), [videos](https://openrouter.ai/docs/guides/overview/multimodal/video-generation), [Jev decisions](https://openrouter.ai/docs/guides/community/jev).

@@ -1,13 +1,24 @@
 import { test, expect } from "bun:test";
-import { mapOpenRouterModels, selectCatalog, type OpenRouterModel, type OpenRouterPricing } from "./models.ts";
+import {
+  mapOpenRouterModels,
+  selectCatalog,
+  type OpenRouterModel,
+  type OpenRouterPricing,
+} from "./models.ts";
 
-function model(): OpenRouterModel & { pricing: OpenRouterPricing; architecture: NonNullable<OpenRouterModel["architecture"]> } {
+function model(): OpenRouterModel & {
+  pricing: OpenRouterPricing;
+  architecture: NonNullable<OpenRouterModel["architecture"]>;
+} {
   return {
     id: "example/reasoner",
     name: "Reasoner",
     context_length: 1000000,
     top_provider: { max_completion_tokens: 128000 },
-    architecture: { input_modalities: ["text", "image", "audio", "file"], output_modalities: ["text"] },
+    architecture: {
+      input_modalities: ["text", "image", "audio", "file"],
+      output_modalities: ["text"],
+    },
     supported_parameters: ["reasoning", "reasoning_effort", "tools"],
     reasoning: { supported_efforts: ["high", "none", "low", "future-effort"] },
     pricing: { prompt: "0.000002", completion: "0.00001", input_cache_read: "0.0000002" },
@@ -22,12 +33,23 @@ test("maps first context price tier by threshold and inherits omitted rates", ()
   ];
   const mapped = mapOpenRouterModels([row])[0];
   expect(mapped.cost).toEqual({
-    input: 2, output: 10, cacheRead: expect.closeTo(0.2, 12), cacheWrite: 0,
-    longContext: { inputThreshold: 200000, input: 4, output: 10, cacheRead: expect.closeTo(0.2, 12), cacheWrite: 0 },
+    input: 2,
+    output: 10,
+    cacheRead: expect.closeTo(0.2, 12),
+    cacheWrite: 0,
+    longContext: {
+      inputThreshold: 200000,
+      input: 4,
+      output: 10,
+      cacheRead: expect.closeTo(0.2, 12),
+      cacheWrite: 0,
+    },
   });
   expect(mapped.contextWindow).toBe(1000000);
   expect(mapped.input).toEqual(["text", "image"]);
-  expect(mapped.thinking?.mode === "effort" ? mapped.thinking.efforts?.map(String) : undefined).toEqual(["low", "high"]);
+  expect(
+    mapped.thinking?.mode === "effort" ? mapped.thinking.efforts?.map(String) : undefined,
+  ).toEqual(["low", "high"]);
 });
 
 test("does not turn missing or invalid paid prices into free models", () => {
@@ -48,19 +70,24 @@ test("router API additions and removals control availability independently of me
   expect(selectCatalog(upstream, [row.id])).toEqual([row]);
   expect(selectCatalog(upstream, [added.id, added.id])).toEqual([added]);
   expect(selectCatalog(upstream, [])).toEqual([]);
-  expect(() => selectCatalog(upstream, ["missing/model"])).toThrow("Router model missing from OpenRouter metadata");
+  expect(() => selectCatalog(upstream, ["missing/model"])).toThrow(
+    "Router model missing from OpenRouter metadata",
+  );
 });
 
 test("retains specialized metadata without exposing non-chat models in the picker", () => {
   const chat = model();
-  const specialized = ["image", "video", "decisions"].map(output => ({
+  const specialized = ["image", "video", "decisions"].map((output) => ({
     id: `example/${output}`,
     architecture: { input_modalities: ["text"], output_modalities: [output] },
   }));
   const data = [chat, ...specialized];
-  const selected = selectCatalog({ data }, data.map(row => row.id));
+  const selected = selectCatalog(
+    { data },
+    data.map((row) => row.id),
+  );
   expect(selected).toEqual(data);
-  expect(mapOpenRouterModels(selected).map(row => row.id)).toEqual([chat.id]);
+  expect(mapOpenRouterModels(selected).map((row) => row.id)).toEqual([chat.id]);
   expect(mapOpenRouterModels(specialized)).toEqual([]);
   delete chat.architecture.output_modalities;
   expect(() => mapOpenRouterModels([chat])).toThrow("Missing OpenRouter output modalities");

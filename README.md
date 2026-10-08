@@ -122,6 +122,19 @@ Keep both plugins' `dist/` files in Git. OMP 18.6.1's marketplace installer copi
 
 When updating bundled dependencies, update `THIRD_PARTY_NOTICES.md` to preserve the licenses of all packages included in the bundle.
 
+### Lint, formatting, and Git hooks
+
+```sh
+bun run check  # Type-aware lint + TypeScript diagnostics, then format check
+bun run fix    # Safe lint autofixes, then format files in place
+```
+
+Oxlint runs with `--type-aware --type-check`; warnings fail the check. Oxfmt checks source, configuration, and documentation. Generated `dist/` bundles are excluded from both tools. The formatter also leaves `bun.lock`, local `AGENTS.md`, and bundled license notices untouched.
+
+`bun install` installs Lefthook's pre-commit hook through `postinstall`. The hook runs the full workspace's read-only `bun run check`; it does not rewrite or stage files. Fix failures with `bun run fix`, review and stage the changes, then commit again. Non-autofixable lint and type errors require manual corrections.
+
+Verified with temporary probes: `check` rejects TypeScript errors, floating promises, and formatting drift; `fix` removes a redundant Boolean cast and formats the file. The probes were removed after verification.
+
 ## Add plugins
 
 1. Create a self-contained package under `plugins/<name>/`.

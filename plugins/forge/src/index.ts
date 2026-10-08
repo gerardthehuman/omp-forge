@@ -2,7 +2,8 @@ import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
 import { readForge } from "./forge.ts";
 import { mapForgeModels } from "./models.ts";
 
-const UNAVAILABLE = "Forge is unavailable or returned an invalid catalog. Start Forge, then run /forge refresh.";
+const UNAVAILABLE =
+  "Forge is unavailable or returned an invalid catalog. Start Forge, then run /forge refresh.";
 
 export default async function forgePlugin(pi: ExtensionAPI) {
   let loadError: string | undefined;
@@ -12,10 +13,7 @@ export default async function forgePlugin(pi: ExtensionAPI) {
   }
 
   async function refresh() {
-    const [providers, catalog] = await Promise.all([
-      readForge("/providers"),
-      readForge("/models"),
-    ]);
+    const [providers, catalog] = await Promise.all([readForge("/providers"), readForge("/models")]);
     const options = providers.forge.options;
     const models = mapForgeModels(catalog);
     pi.registerProvider("forge", {
@@ -31,7 +29,8 @@ export default async function forgePlugin(pi: ExtensionAPI) {
   }
 
   pi.registerCommand("forge", {
-    description: "Forge catalog: /forge models [model-id]; /forge refresh after endpoint or catalog changes",
+    description:
+      "Forge catalog: /forge models [model-id]; /forge refresh after endpoint or catalog changes",
     handler: async (args, ctx) => {
       const [command, ...rest] = args.trim().split(/\s+/);
       if (command === "models") {
@@ -43,13 +42,15 @@ export default async function forgePlugin(pi: ExtensionAPI) {
           const catalog = await readForge("/models");
           const id = rest[0];
           const model = id
-            ? catalog[id] ?? Object.values(catalog).find((entry) => entry.id === id)
+            ? (catalog[id] ?? Object.values(catalog).find((entry) => entry.id === id))
             : catalog;
           if (model === undefined) {
             show(`Forge model not found: ${id}. Use /forge models to inspect the full catalog.`);
             return;
           }
-          show(`Forge ${id ?? "model catalog"}\n\n\`\`\`json\n${JSON.stringify(model, null, 2)}\n\`\`\``);
+          show(
+            `Forge ${id ?? "model catalog"}\n\n\`\`\`json\n${JSON.stringify(model, null, 2)}\n\`\`\``,
+          );
         } catch {
           show(UNAVAILABLE);
         }
@@ -63,23 +64,33 @@ export default async function forgePlugin(pi: ExtensionAPI) {
           // The session holds its selected Model object; replace it as well as
           // the registry entry so a changed port/key reaches the next request.
           if (current?.provider === "forge") {
-            const updated = ctx.models.list().find((model) => model.provider === "forge" && model.id === current.id);
+            const updated = ctx.models
+              .list()
+              .find((model) => model.provider === "forge" && model.id === current.id);
             if (!updated) {
-              show(`Refreshed ${count} Forge models. The selected model is no longer in Forge's catalog; select another with /model.`);
+              show(
+                `Refreshed ${count} Forge models. The selected model is no longer in Forge's catalog; select another with /model.`,
+              );
               return;
             }
-            if (!await pi.setModel(updated)) {
-              show(`Refreshed ${count} Forge models, but could not update the selected model. Select it again with /model.`);
+            if (!(await pi.setModel(updated))) {
+              show(
+                `Refreshed ${count} Forge models, but could not update the selected model. Select it again with /model.`,
+              );
               return;
             }
           }
           show(`Refreshed ${count} Forge models and the current Forge connection.`);
         } catch {
-          show(`${UNAVAILABLE} Refresh failed; select a Forge model again after a successful refresh.`);
+          show(
+            `${UNAVAILABLE} Refresh failed; select a Forge model again after a successful refresh.`,
+          );
         }
         return;
       }
-      show("/forge models [model-id] — inspect current, complete Forge metadata as JSON.\n/forge refresh — reload the Forge endpoint, credential and native model catalog; update the selected Forge model.\nAfter restarting Forge, run /forge refresh and /mcp reload, or restart OMP.\nOMP supports text/image inputs and one long-context pricing tier. Other Forge metadata remains available in /forge models. Use /extended-context on for full advertised context windows.\nCLI on OMP 18.6.1: --model forge/openai/gpt-6-luna --thinking low (not --model forge/openai/gpt-6-luna:low).");
+      show(
+        "/forge models [model-id] — inspect current, complete Forge metadata as JSON.\n/forge refresh — reload the Forge endpoint, credential and native model catalog; update the selected Forge model.\nAfter restarting Forge, run /forge refresh and /mcp reload, or restart OMP.\nOMP supports text/image inputs and one long-context pricing tier. Other Forge metadata remains available in /forge models. Use /extended-context on for full advertised context windows.\nCLI on OMP 18.6.1: --model forge/openai/gpt-6-luna --thinking low (not --model forge/openai/gpt-6-luna:low).",
+      );
     },
   });
 

@@ -55,16 +55,18 @@ function modelCost(cost: ForgeModel["cost"]): ModelCost {
   return mapped;
 }
 
-export function mapForgeModels(catalog: ForgeCatalog): (ProviderModelConfig & Pick<Model, "supportsTools">)[] {
+export function mapForgeModels(
+  catalog: ForgeCatalog,
+): (ProviderModelConfig & Pick<Model, "supportsTools">)[] {
   return Object.values(catalog).map((model) => {
-    const effortValues = model.reasoning_options
-      ?.filter((option) => option.type === "effort")
-      .flatMap((option) => option.values) ?? [];
+    const effortValues =
+      model.reasoning_options
+        ?.filter((option) => option.type === "effort")
+        .flatMap((option) => option.values) ?? [];
     // "none" is OMP's separate "off" control, not a thinking effort.
     const efforts = OMP_EFFORTS.filter((effort) => effortValues.includes(effort));
-    const thinking: ProviderModelConfig["thinking"] = model.reasoning && efforts.length
-      ? { mode: "effort", efforts }
-      : undefined;
+    const thinking: ProviderModelConfig["thinking"] =
+      model.reasoning && efforts.length ? { mode: "effort", efforts } : undefined;
     // The endpoint speaks OpenRouter, even when model lineage or its loopback
     // URL would make OMP infer a native vendor/local-serving dialect.
     const reasoningCompat: Compatibility = {

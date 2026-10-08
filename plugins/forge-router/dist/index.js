@@ -106,7 +106,10 @@ function mapOpenRouterModels(data) {
 
 // src/catalog.ts
 var OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models?output_modalities=all", TTL_MS = 86400000;
-async function fetchRouterCatalog(baseUrl, key, { fetcher = fetch, signal } = {}) {
+async function fetchRouterCatalog(baseUrl, key, {
+  fetcher = fetch,
+  signal
+} = {}) {
   if (!key)
     throw Error("Log in to Forge Router with /login before discovering models.");
   let response;
@@ -139,7 +142,11 @@ async function openRouterCatalog(cachePath, force) {
     let response = await fetch(OPENROUTER_MODELS_URL, { signal: AbortSignal.timeout(8000) });
     if (!response.ok)
       throw Error(`OpenRouter returned HTTP ${response.status}.`);
-    let catalog = { ...await response.json(), fetchedAt: (/* @__PURE__ */ new Date()).toISOString(), source: OPENROUTER_MODELS_URL };
+    let catalog = {
+      ...await response.json(),
+      fetchedAt: (/* @__PURE__ */ new Date()).toISOString(),
+      source: OPENROUTER_MODELS_URL
+    };
     if (!Array.isArray(catalog.data))
       throw Error("Invalid OpenRouter catalog.");
     await mkdir(dirname(cachePath), { recursive: !0 });
@@ -191,10 +198,16 @@ function forgeRouterPlugin(pi) {
     oauth: {
       name: "Forge Router (API key)",
       async login(callbacks) {
-        let key = await callbacks.onPrompt({ message: `Forge Router API key for ${baseUrl}`, secret: !0 });
+        let key = await callbacks.onPrompt({
+          message: `Forge Router API key for ${baseUrl}`,
+          secret: !0
+        });
         if (!key?.trim())
           throw Error("Forge Router login cancelled: no API key supplied.");
-        return await fetchRouterCatalog(baseUrl, key, { fetcher: callbacks.fetch ?? fetch, signal: callbacks.signal }), key;
+        return await fetchRouterCatalog(baseUrl, key, {
+          fetcher: callbacks.fetch ?? fetch,
+          signal: callbacks.signal
+        }), key;
       }
     },
     fetchDynamicModels: discover
@@ -205,7 +218,9 @@ function forgeRouterPlugin(pi) {
       if (command === "models" && rest.length <= 1) {
         try {
           if (!catalog) {
-            let key = await ctx.modelRegistry.getApiKeyForProvider(PROVIDER, void 0, { baseUrl });
+            let key = await ctx.modelRegistry.getApiKeyForProvider(PROVIDER, void 0, {
+              baseUrl
+            });
             await discover(key);
           }
           let model = rest.length ? catalog.data.find((model) => model.id === rest[0]) : catalog;

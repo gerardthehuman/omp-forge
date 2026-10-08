@@ -1,18 +1,22 @@
 {
   "name": "omp-forge",
   "version": "1.0.2",
+  "private": true,
   "description": "Forge provider, live model metadata, and MCP for OMP",
   "type": "module",
-  "private": true,
-  "engines": { "bun": ">=1.3.0" },
   "scripts": {
     "build": "bun build src/index.ts src/mcp.ts --target=bun --format=esm --packages=bundle --env=disable --minify-syntax --outdir=dist",
     "typecheck": "tsc --project tsconfig.json"
   },
-  "omp": {
-    "extensions": ["dist/index.js"]
-  },
   "devDependencies": {
     "@modelcontextprotocol/sdk": "1.29.0"
+  },
+  "engines": {
+    "bun": ">=1.3.0"
+  },
+  "omp": {
+    "extensions": [
+      "dist/index.js"
+    ]
   }
 }

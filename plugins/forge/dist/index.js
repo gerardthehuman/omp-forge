@@ -102,10 +102,7 @@ async function forgePlugin(pi) {
     pi.sendMessage({ customType: "forge", content, display: !0 }, { triggerTurn: !1 });
   }
   async function refresh() {
-    let [providers, catalog] = await Promise.all([
-      readForge("/providers"),
-      readForge("/models")
-    ]), options = providers.forge.options, models = mapForgeModels(catalog);
+    let [providers, catalog] = await Promise.all([readForge("/providers"), readForge("/models")]), options = providers.forge.options, models = mapForgeModels(catalog);
     return pi.registerProvider("forge", {
       baseUrl: options.baseURL,
       api: "openai-completions",

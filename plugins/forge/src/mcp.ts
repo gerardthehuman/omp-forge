@@ -11,7 +11,13 @@ let initializeId: RequestId | undefined;
 
 // HTTP error messages can contain response bodies; never print them or config.
 function diagnose(context: string, error?: unknown) {
-  const status = error instanceof Error && "code" in error && Number.isInteger(error.code) ? ` (code ${error.code})` : "";
+  const status =
+    error instanceof Error &&
+    "code" in error &&
+    typeof error.code === "number" &&
+    Number.isInteger(error.code)
+      ? ` (code ${error.code})`
+      : "";
   process.stderr.write(`[forge-mcp] ${context}${status}\n`);
 }
 
@@ -46,8 +52,8 @@ function fail(context: string, error: unknown) {
 
 process.stdin.once("end", () => void shutdown());
 process.stdin.once("close", () => void shutdown());
-process.stdin.once("error", error => fail("Stdin failed.", error));
-process.stdout.once("error", error => fail("Stdout failed.", error));
+process.stdin.once("error", (error) => fail("Stdin failed.", error));
+process.stdout.once("error", (error) => fail("Stdout failed.", error));
 process.once("SIGTERM", () => void shutdown(143));
 process.once("SIGINT", () => void shutdown(130));
 
@@ -57,14 +63,21 @@ async function start() {
     throw new Error("Forge MCP is not a remote endpoint.");
   }
   const url = new URL(config.url);
-  if (!["http:", "https:"].includes(url.protocol) ||
-      !["127.0.0.1", "localhost", "[::1]"].includes(url.hostname) ||
-      url.username || url.password) {
+  if (
+    !["http:", "https:"].includes(url.protocol) ||
+    !["127.0.0.1", "localhost", "[::1]"].includes(url.hostname) ||
+    url.username ||
+    url.password
+  ) {
     throw new Error("Forge MCP must use a local HTTP endpoint.");
   }
-  if (config.headers !== undefined &&
-      (!config.headers || typeof config.headers !== "object" || Array.isArray(config.headers) ||
-       Object.values(config.headers).some(value => typeof value !== "string"))) {
+  if (
+    config.headers !== undefined &&
+    (!config.headers ||
+      typeof config.headers !== "object" ||
+      Array.isArray(config.headers) ||
+      Object.values(config.headers).some((value) => typeof value !== "string"))
+  ) {
     throw new Error("Forge MCP headers are invalid.");
   }
 
@@ -77,23 +90,25 @@ async function start() {
 
   stdio.onclose = () => void shutdown();
   remote.onclose = () => void shutdown();
-  stdio.onerror = error => diagnose("Invalid stdio message.", error);
-  remote.onerror = error => {
+  stdio.onerror = (error) => diagnose("Invalid stdio message.", error);
+  remote.onerror = (error) => {
     if (!closing) diagnose("Forge MCP transport error.", error);
   };
 
   // Bridge transports directly. OMP alone initializes the Forge session, and
   // every protocol method, capability, instruction and request ID is preserved.
-  stdio.onmessage = message => {
+  stdio.onmessage = (message) => {
     if (closing) return;
     if ("method" in message && message.method === "initialize" && "id" in message) {
       initializeId = message.id;
     }
     // Do not serialize HTTP sends: cancellation and replies to server requests
     // must be able to pass while another request is still running.
-    void remote!.send(message).catch(error => fail("Could not forward an MCP message to Forge.", error));
+    void remote!
+      .send(message)
+      .catch((error) => fail("Could not forward an MCP message to Forge.", error));
   };
-  remote.onmessage = message => {
+  remote.onmessage = (message) => {
     if (closing) return;
     if (!("method" in message) && initializeId !== undefined && message.id === initializeId) {
       if ("result" in message && typeof message.result?.protocolVersion === "string") {
@@ -103,11 +118,13 @@ async function start() {
       }
       initializeId = undefined;
     }
-    void stdio!.send(message).catch(error => fail("Could not forward an MCP message to OMP.", error));
+    void stdio!
+      .send(message)
+      .catch((error) => fail("Could not forward an MCP message to OMP.", error));
   };
 
   await remote.start();
   await stdio.start();
 }
 
-void start().catch(error => fail("Could not start the Forge MCP bridge.", error));
+void start().catch((error) => fail("Could not start the Forge MCP bridge.", error));

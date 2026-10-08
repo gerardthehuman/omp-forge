@@ -6,7 +6,9 @@ import type { ForgeCatalog } from "./models.ts";
 
 interface ForgeRoutes {
   "/models": ForgeCatalog;
-  "/providers": { forge: { options: { baseURL: string; apiKey: string; headers?: Record<string, string> } } };
+  "/providers": {
+    forge: { options: { baseURL: string; apiKey: string; headers?: Record<string, string> } };
+  };
   "/mcp": { forge?: { type: string; url: string; headers?: Record<string, string> } };
 }
 
@@ -18,18 +20,26 @@ interface ServerDescriptor {
 
 export const serverFile = process.env.FORGE_SERVER_FILE || join(homedir(), ".forge", "server.json");
 
-export async function readForge<Route extends keyof ForgeRoutes>(route: Route): Promise<ForgeRoutes[Route]> {
+export async function readForge<Route extends keyof ForgeRoutes>(
+  route: Route,
+): Promise<ForgeRoutes[Route]> {
   let snapshot: ServerDescriptor;
   try {
     snapshot = JSON.parse(await readFile(serverFile, "utf8"));
   } catch (error) {
-    if (error instanceof Error && "code" in error && error.code === "ENOENT") throw new Error(`Forge is not running: ${serverFile} is missing.`);
+    if (error instanceof Error && "code" in error && error.code === "ENOENT")
+      throw new Error(`Forge is not running: ${serverFile} is missing.`);
     throw error;
   }
   const host = snapshot.host || "127.0.0.1";
-  if (!["127.0.0.1", "localhost", "::1"].includes(host) ||
-      !Number.isInteger(snapshot.port) || snapshot.port < 1 || snapshot.port > 65535 ||
-      typeof snapshot.token !== "string" || !snapshot.token) {
+  if (
+    !["127.0.0.1", "localhost", "::1"].includes(host) ||
+    !Number.isInteger(snapshot.port) ||
+    snapshot.port < 1 ||
+    snapshot.port > 65535 ||
+    typeof snapshot.token !== "string" ||
+    !snapshot.token
+  ) {
     throw new Error(`Invalid local Forge server descriptor: ${serverFile}`);
   }
   const authority = host === "::1" ? `[${host}]` : host;

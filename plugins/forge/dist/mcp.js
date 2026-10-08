@@ -6913,7 +6913,7 @@ async function readForge(route) {
 // src/mcp.ts
 var stdio, remote, closing = !1, initializeId;
 function diagnose(context, error) {
-  let status = error instanceof Error && "code" in error && Number.isInteger(error.code) ? ` (code ${error.code})` : "";
+  let status = error instanceof Error && "code" in error && typeof error.code === "number" && Number.isInteger(error.code) ? ` (code ${error.code})` : "";
   process3.stderr.write(`[forge-mcp] ${context}${status}
 `);
 }
