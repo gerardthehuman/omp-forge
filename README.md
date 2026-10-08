@@ -34,7 +34,7 @@ omp plugin marketplace add OWNER/omp-forge
 omp plugin install forge@omp-forge
 ```
 
-No npm publication or dependency installation is needed. The committed `plugins/forge/dist/mcp.mjs` contains the MCP bridge's dependencies.
+No npm publication or dependency installation is needed. Each plugin loads its committed `dist/index.js`; `plugins/forge/dist/mcp.js` contains the MCP bridge's dependencies.
 
 ### Development link
 
@@ -85,29 +85,40 @@ Marketplace MCP servers are namespaced by OMP. The `forge` entry's `forge` serve
 ```text
 .omp-plugin/marketplace.json    Marketplace catalog
 plugins/forge/                 Forge plugin package
-  index.mjs                    Provider registration and /forge commands
-  forge.mjs                    Local descriptor and endpoint access
-  models.mjs                   Forge → OMP metadata mapping
-  mcp.mjs                      Readable MCP bridge source
-  dist/mcp.mjs                 Committed, bundled MCP runtime
+  src/index.ts                 Provider registration and /forge commands
+  src/forge.ts                 Local descriptor and endpoint access
+  src/models.ts                Forge → OMP metadata mapping
+  src/mcp.ts                   MCP bridge source
+  dist/index.js                Committed provider runtime
+  dist/mcp.js                  Committed, bundled MCP runtime
   .mcp.json                    Plugin-owned MCP configuration
   THIRD_PARTY_NOTICES.md        Bundled dependency licenses
 plugins/forge-router/          Standalone router package (no runtime dependencies)
-  index.mjs                    Provider, native API-key login, and sync command
-  catalog.mjs                  Authenticated API discovery and all-modality metadata cache
-  models.mjs                   OpenRouter → OMP metadata mapping
+  src/index.ts                 Provider, native API-key login, and sync command
+  src/catalog.ts               Authenticated API discovery and all-modality metadata cache
+  src/models.ts                OpenRouter → OMP metadata mapping
+  src/models.test.ts           Metadata regression tests
+  dist/index.js                Committed provider runtime
+package.json                  Bun workspace and Turbo commands
+bun.lock                      Pinned workspace dependencies
+tsconfig.json                 Shared strict TypeScript settings
+turbo.json                    Cached build, typecheck, and test tasks
 ```
 
 ## Build
 
-Install build dependencies inside the plugin, then rebuild from the repository root:
+Use Bun 1.4.2 for development. Install once from the repository root:
 
 ```sh
-bun install --cwd plugins/forge --frozen-lockfile
+bun install --frozen-lockfile
 bun run build
+bun run typecheck
+bun run test
 ```
 
-Keep `dist/mcp.mjs` in Git. OMP 18.6.1's marketplace installer copies plugin files but does not run a package-manager install. Environment variables are not inlined into the bundle.
+Turbo runs each plugin's package scripts and caches `dist/**`. Builds require successful strict TypeScript checks, then Bun bundles the runtime entrypoints. OMP API packages are development-only type dependencies; no OMP runtime is bundled. Tests run the existing router regressions.
+
+Keep both plugins' `dist/` files in Git. OMP 18.6.1's marketplace installer copies plugin files but does not run a package-manager install. Environment variables are not inlined into the bundles. After editing TypeScript, run `bun run build` before starting a linked plugin.
 
 When updating bundled dependencies, update `THIRD_PARTY_NOTICES.md` to preserve the licenses of all packages included in the bundle.
 
@@ -150,3 +161,5 @@ Release 1.0.1 was exercised with OMP 18.6.1 and Bun 1.4.2:
 Model and tool counts reflect that running Forge instance, not fixed plugin limits.
 
 Router release 1.0.1 passed fresh-profile native secret-login validation, API-key persistence across restart, live API discovery of 22 metadata records and the exact 19 chat-compatible IDs, forced sync, selected-model refresh, all three specialized metadata inspections, and direct remote streaming inference. Mapper regressions cover API additions/removals, empty catalogs, missing metadata, and non-chat exclusion. Counts reflect that API response, not fixed limits. The existing local profile has one rejected and one valid router credential; verification used an isolated profile and left both unchanged.
+
+Release 1.0.2 migrated both plugins and the router regressions to strict TypeScript. Frozen workspace installation, Turbo build/typecheck/test, and build cache reuse passed. Dist-only snapshots (no TypeScript or dependencies) loaded in OMP: desktop model inspection/refresh, MCP initialization and 131-tool discovery with EOF cleanup, and router native login/discovery plus streaming inference after restart all passed.

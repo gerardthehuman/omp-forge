@@ -1,9 +1,14 @@
 {
   "name": "omp-forge-router",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Direct Forge router provider with API-key login and OpenRouter metadata sync",
   "type": "module",
   "private": true,
   "engines": { "bun": ">=1.3.0" },
-  "omp": { "extensions": ["index.mjs"] }
+  "scripts": {
+    "build": "bun build src/index.ts --target=bun --format=esm --packages=bundle --env=disable --minify-syntax --outdir=dist",
+    "typecheck": "tsc --project tsconfig.json",
+    "test": "bun test src"
+  },
+  "omp": { "extensions": ["dist/index.js"] }
 }

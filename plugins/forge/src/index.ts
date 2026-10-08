@@ -1,12 +1,13 @@
-import { readForge } from "./forge.mjs";
-import { mapForgeModels } from "./models.mjs";
+import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
+import { readForge } from "./forge.ts";
+import { mapForgeModels } from "./models.ts";
 
 const UNAVAILABLE = "Forge is unavailable or returned an invalid catalog. Start Forge, then run /forge refresh.";
 
-export default async function forgePlugin(pi) {
-  let loadError;
+export default async function forgePlugin(pi: ExtensionAPI) {
+  let loadError: string | undefined;
 
-  function show(content) {
+  function show(content: string) {
     pi.sendMessage({ customType: "forge", content, display: true }, { triggerTurn: false });
   }
 

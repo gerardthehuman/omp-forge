@@ -1,6 +1,36 @@
-const OMP_EFFORTS = ["minimal", "low", "medium", "high", "xhigh", "max"];
+import type { ProviderModelConfig } from "@oh-my-pi/pi-coding-agent";
+import type { Effort, Model } from "@oh-my-pi/pi-ai";
 
-function tokenCost(cost) {
+type ModelCost = Model["cost"];
+type Compatibility = NonNullable<ProviderModelConfig["compat"]>;
+
+interface TokenCost {
+  input: number;
+  output: number;
+  cache_read?: number;
+  cache_write?: number;
+}
+
+interface CostTier extends TokenCost {
+  tier: { type: string; size: number };
+}
+
+export interface ForgeModel {
+  id: string;
+  name: string;
+  reasoning: boolean;
+  reasoning_options?: { type: string; values: string[] }[];
+  modalities: { input: string[] };
+  tool_call: boolean;
+  cost: TokenCost & { tiers?: CostTier[] };
+  limit: { context: number; output: number };
+}
+
+export type ForgeCatalog = Record<string, ForgeModel>;
+
+const OMP_EFFORTS = ["minimal", "low", "medium", "high", "xhigh", "max"] as readonly Effort[];
+
+function tokenCost(cost: TokenCost): ModelCost {
   return {
     input: cost.input,
     output: cost.output,
@@ -9,7 +39,7 @@ function tokenCost(cost) {
   };
 }
 
-function modelCost(cost) {
+function modelCost(cost: ForgeModel["cost"]): ModelCost {
   const mapped = tokenCost(cost);
   // OMP can represent one long-context rate card. Keep any additional tiers
   // verbatim in the full Forge catalog exposed by /forge models.
@@ -25,19 +55,19 @@ function modelCost(cost) {
   return mapped;
 }
 
-export function mapForgeModels(catalog) {
+export function mapForgeModels(catalog: ForgeCatalog): (ProviderModelConfig & Pick<Model, "supportsTools">)[] {
   return Object.values(catalog).map((model) => {
     const effortValues = model.reasoning_options
       ?.filter((option) => option.type === "effort")
       .flatMap((option) => option.values) ?? [];
     // "none" is OMP's separate "off" control, not a thinking effort.
     const efforts = OMP_EFFORTS.filter((effort) => effortValues.includes(effort));
-    const thinking = model.reasoning && efforts.length
+    const thinking: ProviderModelConfig["thinking"] = model.reasoning && efforts.length
       ? { mode: "effort", efforts }
       : undefined;
     // The endpoint speaks OpenRouter, even when model lineage or its loopback
     // URL would make OMP infer a native vendor/local-serving dialect.
-    const reasoningCompat = {
+    const reasoningCompat: Compatibility = {
       thinkingFormat: "openrouter",
       reasoningDisableMode: "openrouter-enabled-false",
       supportsReasoningParams: true,

@@ -1,7 +1,7 @@
 import { test, expect } from "bun:test";
-import { mapOpenRouterModels, selectCatalog } from "./models.mjs";
+import { mapOpenRouterModels, selectCatalog, type OpenRouterModel, type OpenRouterPricing } from "./models.ts";
 
-function model() {
+function model(): OpenRouterModel & { pricing: OpenRouterPricing; architecture: NonNullable<OpenRouterModel["architecture"]> } {
   return {
     id: "example/reasoner",
     name: "Reasoner",
@@ -27,7 +27,7 @@ test("maps first context price tier by threshold and inherits omitted rates", ()
   });
   expect(mapped.contextWindow).toBe(1000000);
   expect(mapped.input).toEqual(["text", "image"]);
-  expect(mapped.thinking.efforts).toEqual(["low", "high"]);
+  expect(mapped.thinking?.mode === "effort" ? mapped.thinking.efforts?.map(String) : undefined).toEqual(["low", "high"]);
 });
 
 test("does not turn missing or invalid paid prices into free models", () => {

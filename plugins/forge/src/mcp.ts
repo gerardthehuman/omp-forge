@@ -1,16 +1,17 @@
 import process from "node:process";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { readForge } from "./forge.mjs";
+import type { RequestId } from "@modelcontextprotocol/sdk/types.js";
+import { readForge } from "./forge.ts";
 
-let stdio;
-let remote;
+let stdio: StdioServerTransport | undefined;
+let remote: StreamableHTTPClientTransport | undefined;
 let closing = false;
-let initializeId;
+let initializeId: RequestId | undefined;
 
 // HTTP error messages can contain response bodies; never print them or config.
-function diagnose(context, error) {
-  const status = Number.isInteger(error?.code) ? ` (code ${error.code})` : "";
+function diagnose(context: string, error?: unknown) {
+  const status = error instanceof Error && "code" in error && Number.isInteger(error.code) ? ` (code ${error.code})` : "";
   process.stderr.write(`[forge-mcp] ${context}${status}\n`);
 }
 
@@ -37,7 +38,7 @@ async function shutdown(exitCode = 0) {
   }
 }
 
-function fail(context, error) {
+function fail(context: string, error: unknown) {
   if (closing) return;
   diagnose(context, error);
   void shutdown(1);
@@ -85,24 +86,24 @@ async function start() {
   // every protocol method, capability, instruction and request ID is preserved.
   stdio.onmessage = message => {
     if (closing) return;
-    if (message.method === "initialize" && "id" in message) {
+    if ("method" in message && message.method === "initialize" && "id" in message) {
       initializeId = message.id;
     }
     // Do not serialize HTTP sends: cancellation and replies to server requests
     // must be able to pass while another request is still running.
-    void remote.send(message).catch(error => fail("Could not forward an MCP message to Forge.", error));
+    void remote!.send(message).catch(error => fail("Could not forward an MCP message to Forge.", error));
   };
   remote.onmessage = message => {
     if (closing) return;
     if (!("method" in message) && initializeId !== undefined && message.id === initializeId) {
-      if (typeof message.result?.protocolVersion === "string") {
+      if ("result" in message && typeof message.result?.protocolVersion === "string") {
         // Normally Client.connect does this; there is intentionally no Client
         // here, because that would create a second initialize handshake.
-        remote.setProtocolVersion(message.result.protocolVersion);
+        remote!.setProtocolVersion(message.result.protocolVersion);
       }
       initializeId = undefined;
     }
-    void stdio.send(message).catch(error => fail("Could not forward an MCP message to OMP.", error));
+    void stdio!.send(message).catch(error => fail("Could not forward an MCP message to OMP.", error));
   };
 
   await remote.start();

@@ -1,29 +1,30 @@
 import { join } from "node:path";
-import { discoverCatalog, fetchRouterCatalog } from "./catalog.mjs";
-import { mapOpenRouterModels } from "./models.mjs";
+import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
+import { discoverCatalog, fetchRouterCatalog, type DiscoveredCatalog } from "./catalog.ts";
+import { mapOpenRouterModels } from "./models.ts";
 
 const PROVIDER = "forge-router";
 const DEFAULT_BASE_URL = "https://forge.forgeworkspace.dev/functions/v1/forge-api/v1";
 
-export default function forgeRouterPlugin(pi) {
+export default function forgeRouterPlugin(pi: ExtensionAPI) {
   const baseUrl = (process.env.FORGE_ROUTER_BASE_URL || DEFAULT_BASE_URL).replace(/\/+$/, "");
   const cachePath = join(pi.pi.getAgentDir(), "cache", "forge-router", "openrouter.json");
-  let catalog;
+  let catalog: DiscoveredCatalog | undefined;
   let forceSync = false;
-  let discoveryError;
+  let discoveryError: string | undefined;
 
-  function show(content) {
+  function show(content: string) {
     pi.sendMessage({ customType: PROVIDER, content, display: true }, { triggerTurn: false });
   }
 
   function catalogSummary() {
-    const specialized = catalog.data.filter(model => !model.architecture.output_modalities.includes("text"));
-    const chatCount = catalog.data.length - specialized.length;
-    const detail = specialized.length ? ` Non-chat models (metadata only): ${specialized.map(model => `${model.id} [${model.architecture.output_modalities.join(", ")}]`).join("; ")}.` : "";
-    return `${chatCount} chat models from ${catalog.data.length} API-discovered models.${detail}`;
+    const specialized = catalog!.data.filter(model => !model.architecture?.output_modalities?.includes("text"));
+    const chatCount = catalog!.data.length - specialized.length;
+    const detail = specialized.length ? ` Non-chat models (metadata only): ${specialized.map(model => `${model.id} [${model.architecture!.output_modalities!.join(", ")}]`).join("; ")}.` : "";
+    return `${chatCount} chat models from ${catalog!.data.length} API-discovered models.${detail}`;
   }
 
-  async function discover(key) {
+  async function discover(key: string | undefined) {
     try {
       const updated = await discoverCatalog(baseUrl, key, cachePath, forceSync);
       const models = mapOpenRouterModels(updated.data);
@@ -31,7 +32,7 @@ export default function forgeRouterPlugin(pi) {
       discoveryError = undefined;
       return models;
     } catch (error) {
-      discoveryError = error.message;
+      discoveryError = error instanceof Error ? error.message : String(error);
       throw error;
     }
   }
@@ -63,15 +64,15 @@ export default function forgeRouterPlugin(pi) {
             const key = await ctx.modelRegistry.getApiKeyForProvider(PROVIDER, undefined, { baseUrl });
             await discover(key);
           }
-          const model = rest.length ? catalog.data.find(model => model.id === rest[0]) : catalog;
+          const model = rest.length ? catalog!.data.find(model => model.id === rest[0]) : catalog!;
           if (!model) {
             show(`Model not returned by Forge Router: ${rest[0]}. Use /forge-router sync to refresh availability.`);
             return;
           }
-          const usage = rest.length && !model.architecture.output_modalities.includes("text") ? "\nNon-chat model: metadata only; not registered in OMP's chat picker." : "";
-          show(`Forge Router metadata — OpenRouter upstream estimates, fetched ${catalog.fetchedAt}; router discovered ${catalog.discoveredAt}\n${catalogSummary()}${usage}\n\n\`\`\`json\n${JSON.stringify(model, null, 2)}\n\`\`\``);
+          const usage = rest.length && "architecture" in model && !model.architecture?.output_modalities?.includes("text") ? "\nNon-chat model: metadata only; not registered in OMP's chat picker." : "";
+          show(`Forge Router metadata — OpenRouter upstream estimates, fetched ${catalog!.fetchedAt}; router discovered ${catalog!.discoveredAt}\n${catalogSummary()}${usage}\n\n\`\`\`json\n${JSON.stringify(model, null, 2)}\n\`\`\``);
         } catch (error) {
-          show(`Forge Router discovery failed: ${error.message}`);
+          show(`Forge Router discovery failed: ${error instanceof Error ? error.message : String(error)}`);
         }
         return;
       }
@@ -97,7 +98,7 @@ export default function forgeRouterPlugin(pi) {
           }
           show(`Synced ${catalogSummary()} Prices are OpenRouter upstream estimates, not Forge billing.`);
         } catch (error) {
-          show(`Forge Router sync failed: ${error.message}`);
+          show(`Forge Router sync failed: ${error instanceof Error ? error.message : String(error)}`);
         } finally {
           forceSync = false;
         }

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.2
+
+- Move provider, catalog discovery, mapper, and existing regressions to strict TypeScript under `src/`.
+- Build committed `dist/index.js` through the shared Bun/Turbo workspace; update the OMP manifest to load the bundle.
+- Verify native login, live discovery of 22 metadata records and 19 chat models, specialized metadata inspection, credential persistence, and streaming inference from a dependency-free compiled snapshot.
+
 ## 1.0.1
 
 - Replace the fixed roster and shipped snapshot with authenticated router API discovery, enriched by OpenRouter's `output_modalities=all` catalog.

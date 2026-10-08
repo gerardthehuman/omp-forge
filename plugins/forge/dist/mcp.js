@@ -1,5 +1,5 @@
 // @bun
-// mcp.mjs
+// src/mcp.ts
 import process3 from "process";
 
 // node_modules/@modelcontextprotocol/sdk/dist/esm/server/stdio.js
@@ -6883,7 +6883,7 @@ class StreamableHTTPClientTransport {
   }
 }
 
-// forge.mjs
+// src/forge.ts
 import { readFile } from "fs/promises";
 import { homedir } from "os";
 import { join } from "path";
@@ -6893,7 +6893,7 @@ async function readForge(route) {
   try {
     snapshot = JSON.parse(await readFile(serverFile, "utf8"));
   } catch (error) {
-    if (error.code === "ENOENT")
+    if (error instanceof Error && "code" in error && error.code === "ENOENT")
       throw Error(`Forge is not running: ${serverFile} is missing.`);
     throw error;
   }
@@ -6910,10 +6910,10 @@ async function readForge(route) {
   return response.json();
 }
 
-// mcp.mjs
+// src/mcp.ts
 var stdio, remote, closing = !1, initializeId;
 function diagnose(context, error) {
-  let status = Number.isInteger(error?.code) ? ` (code ${error.code})` : "";
+  let status = error instanceof Error && "code" in error && Number.isInteger(error.code) ? ` (code ${error.code})` : "";
   process3.stderr.write(`[forge-mcp] ${context}${status}
 `);
 }
@@ -6961,14 +6961,14 @@ async function start() {
   }, stdio.onmessage = (message) => {
     if (closing)
       return;
-    if (message.method === "initialize" && "id" in message)
+    if ("method" in message && message.method === "initialize" && "id" in message)
       initializeId = message.id;
     remote.send(message).catch((error) => fail("Could not forward an MCP message to Forge.", error));
   }, remote.onmessage = (message) => {
     if (closing)
       return;
     if (!("method" in message) && initializeId !== void 0 && message.id === initializeId) {
-      if (typeof message.result?.protocolVersion === "string")
+      if ("result" in message && typeof message.result?.protocolVersion === "string")
         remote.setProtocolVersion(message.result.protocolVersion);
       initializeId = void 0;
     }

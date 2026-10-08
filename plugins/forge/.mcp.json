@@ -3,7 +3,7 @@
     "forge": {
       "type": "stdio",
       "command": "bun",
-      "args": ["${OMP_PLUGIN_ROOT}/dist/mcp.mjs"]
+      "args": ["${OMP_PLUGIN_ROOT}/dist/mcp.js"]
     }
   }
 }

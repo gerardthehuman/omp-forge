@@ -1,6 +1,6 @@
 # Third-party notices
 
-`dist/mcp.mjs` bundles the packages below. These licenses apply to their code, not to the marketplace’s original source.
+`dist/mcp.js` bundles the packages below. These licenses apply to their code, not to the marketplace’s original source.
 
 ## @modelcontextprotocol/sdk 1.29.0
 
