@@ -21,19 +21,23 @@ function tokenLimit(value, field) {
   return value;
 }
 
-// Select only explicitly supported router IDs; never import OpenRouter's whole roster.
-export function selectCatalog(catalog, roster) {
+// Router API owns availability; OpenRouter supplies metadata for those IDs only.
+export function selectCatalog(catalog, routerIds) {
   if (!Array.isArray(catalog?.data)) throw new Error("Invalid OpenRouter catalog");
   const byId = new Map(catalog.data.map(model => [model.id, model]));
-  return roster.map(id => {
+  return [...new Set(routerIds)].map(id => {
     const model = byId.get(id);
-    if (!model) throw new Error(`Curated model missing from OpenRouter: ${id}`);
+    if (!model) throw new Error(`Router model missing from OpenRouter metadata: ${id}`);
     return model;
   });
 }
 
 export function mapOpenRouterModels(data) {
-  return data.map(model => {
+  return data.filter(model => {
+    const output = model.architecture?.output_modalities;
+    if (!Array.isArray(output) || output.length === 0) throw new Error(`Missing OpenRouter output modalities: ${model.id}`);
+    return output.includes("text");
+  }).map(model => {
     const parameters = model.supported_parameters ?? [];
     const reasoning = parameters.includes("reasoning") || parameters.includes("reasoning_effort");
     const efforts = OMP_EFFORTS.filter(effort => model.reasoning?.supported_efforts?.includes(effort));

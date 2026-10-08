@@ -15,7 +15,7 @@
     {
       "name": "forge-router",
       "description": "Direct Forge router provider, API-key login, and OpenRouter metadata sync",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "source": "./plugins/forge-router",
       "category": "development"
     }

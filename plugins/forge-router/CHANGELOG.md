@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.1
+
+- Replace the fixed roster and shipped snapshot with authenticated router API discovery, enriched by OpenRouter's `output_modalities=all` catalog.
+- Register text-output models only; keep image, video, and decision metadata inspectable and list non-chat IDs in sync output.
+- Discard legacy text-only upstream caches; retain OMP's native discovered-model cache for offline/failure fallback.
+- Force availability and metadata refresh on `/forge-router sync`; refresh the selected model from the registry and report removed models.
+- Verify fresh-profile native login, persistence across restart, 22 live metadata records, 19 chat picker models, all three specialized inspections, selected-model refresh, and direct streaming inference.
+
 ## 1.0.0
 
 - Add a separate `forge-router` provider targeting the direct remote router, without Forge Desktop or MCP dependencies.

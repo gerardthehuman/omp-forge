@@ -3,50 +3,64 @@ import { dirname } from "node:path";
 import { randomUUID } from "node:crypto";
 import { mapOpenRouterModels, selectCatalog } from "./models.mjs";
 
-export const OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models";
+const OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models?output_modalities=all";
 const TTL_MS = 24 * 60 * 60 * 1000;
-const roster = JSON.parse(await readFile(new URL("./roster.json", import.meta.url), "utf8"));
-const snapshot = JSON.parse(await readFile(new URL("./catalog.json", import.meta.url), "utf8"));
 
-function validate(catalog) {
-  const data = selectCatalog(catalog, roster);
-  mapOpenRouterModels(data);
-  return { fetchedAt: catalog.fetchedAt, data };
-}
-
-export async function loadCatalog(cachePath) {
-  let catalog;
-  try {
-    catalog = validate(JSON.parse(await readFile(cachePath, "utf8")));
-  } catch {
-    catalog = validate(snapshot);
-  }
-  const age = Date.now() - Date.parse(catalog.fetchedAt);
-  if (age >= 0 && age < TTL_MS) return { catalog };
-  try {
-    return { catalog: await syncCatalog(cachePath) };
-  } catch {
-    return { catalog, warning: "OpenRouter sync failed; using the last metadata snapshot. Run /forge-router sync to retry." };
-  }
-}
-
-export async function syncCatalog(cachePath) {
-  // Public metadata only. Never send the router credential to OpenRouter.
+export async function fetchRouterCatalog(baseUrl, key, { fetcher = fetch, signal } = {}) {
+  if (!key) throw new Error("Log in to Forge Router with /login before discovering models.");
   let response;
   try {
-    response = await fetch(OPENROUTER_MODELS_URL, { signal: AbortSignal.timeout(8000) });
+    response = await fetcher(`${baseUrl}/models`, {
+      headers: { Authorization: `Bearer ${key}` },
+      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(8000)]) : AbortSignal.timeout(8000),
+      redirect: "error",
+    });
   } catch {
-    throw new Error("OpenRouter catalog is unreachable; current metadata is unchanged.");
+    throw new Error("Forge Router model endpoint is unreachable.");
   }
-  if (!response.ok) throw new Error(`OpenRouter catalog returned HTTP ${response.status}; current metadata is unchanged.`);
-  const catalog = validate({ ...await response.json(), fetchedAt: new Date().toISOString() });
-  await mkdir(dirname(cachePath), { recursive: true });
-  const temporary = `${cachePath}.${randomUUID()}.tmp`;
-  try {
-    await writeFile(temporary, JSON.stringify(catalog, null, 2) + "\n", { mode: 0o600 });
-    await rename(temporary, cachePath);
-  } finally {
-    await rm(temporary, { force: true });
+  if (!response.ok) throw new Error(`Forge Router model endpoint returned HTTP ${response.status}.`);
+  const catalog = await response.json();
+  if (!Array.isArray(catalog?.data) || catalog.data.some(model => typeof model.id !== "string" || !model.id)) {
+    throw new Error("Invalid Forge Router model catalog.");
   }
   return catalog;
+}
+
+async function openRouterCatalog(cachePath, force) {
+  let cached;
+  try {
+    cached = JSON.parse(await readFile(cachePath, "utf8"));
+    if (!Array.isArray(cached?.data) || cached.source !== OPENROUTER_MODELS_URL) cached = undefined;
+  } catch {}
+  const age = Date.now() - Date.parse(cached?.fetchedAt);
+  if (!force && cached && age >= 0 && age < TTL_MS) return cached;
+  try {
+    // Public metadata only; never forward the router credential.
+    const response = await fetch(OPENROUTER_MODELS_URL, { signal: AbortSignal.timeout(8000) });
+    if (!response.ok) throw new Error(`OpenRouter returned HTTP ${response.status}.`);
+    const catalog = { ...await response.json(), fetchedAt: new Date().toISOString(), source: OPENROUTER_MODELS_URL };
+    if (!Array.isArray(catalog.data)) throw new Error("Invalid OpenRouter catalog.");
+    await mkdir(dirname(cachePath), { recursive: true });
+    const temporary = `${cachePath}.${randomUUID()}.tmp`;
+    try {
+      await writeFile(temporary, JSON.stringify(catalog) + "\n", { mode: 0o600 });
+      await rename(temporary, cachePath);
+    } finally {
+      await rm(temporary, { force: true });
+    }
+    return catalog;
+  } catch {
+    if (!force && cached) return cached;
+    throw new Error("OpenRouter metadata sync failed; current models are unchanged.");
+  }
+}
+
+export async function discoverCatalog(baseUrl, key, cachePath, force = false) {
+  const [router, upstream] = await Promise.all([
+    fetchRouterCatalog(baseUrl, key),
+    openRouterCatalog(cachePath, force),
+  ]);
+  const data = selectCatalog(upstream, router.data.map(model => model.id));
+  mapOpenRouterModels(data);
+  return { fetchedAt: upstream.fetchedAt, discoveredAt: new Date().toISOString(), data };
 }

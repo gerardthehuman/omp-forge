@@ -52,7 +52,7 @@ Do not install `forge@omp-forge` alongside that link: both use the `omp-forge` p
 omp plugin install forge-router@omp-forge
 ```
 
-Restart OMP, run `/login`, choose **Forge Router (API key)**, and enter your key. `/forge-router sync` updates OpenRouter metadata for the curated 11 models. `/forge-router models [id]` shows the raw metadata. Router prices are upstream estimates, not Forge billing.
+Restart OMP, run `/login`, choose **Forge Router (API key)**, and enter your key. `/forge-router sync` discovers IDs from the authenticated router API and joins all-modality OpenRouter metadata. Text-output models populate the chat picker; `/forge-router models [id]` exposes every returned model, including non-chat metadata. No hardcoded roster or shipped snapshot. Prices are upstream estimates, not Forge billing.
 
 For local development: `omp plugin link ~/Projects/omp-forge/plugins/forge-router`. This machine links both plugins. The existing router credential was migrated into OMP's native storage and the obsolete manual `models.yml` provider removed. Model roles are unchanged.
 
@@ -94,9 +94,7 @@ plugins/forge/                 Forge plugin package
   THIRD_PARTY_NOTICES.md        Bundled dependency licenses
 plugins/forge-router/          Standalone router package (no runtime dependencies)
   index.mjs                    Provider, native API-key login, and sync command
-  roster.json                  Curated supported router IDs
-  catalog.json                 Generated OpenRouter metadata snapshot
-  catalog.mjs                  Public metadata sync and user cache
+  catalog.mjs                  Authenticated API discovery and all-modality metadata cache
   models.mjs                   OpenRouter → OMP metadata mapping
 ```
 
@@ -151,4 +149,4 @@ Release 1.0.1 was exercised with OMP 18.6.1 and Bun 1.4.2:
 
 Model and tool counts reflect that running Forge instance, not fixed plugin limits.
 
-Router release 1.0.0 passed clean marketplace installation, masked login callback and native API-key persistence across restart, all 11 mapped models against OpenRouter, forced sync, raw metadata inspection, and direct remote streaming inference without a desktop descriptor. Offline/partial-sync preservation and metadata boundary checks also passed.
+Router release 1.0.1 passed fresh-profile native secret-login validation, API-key persistence across restart, live API discovery of 22 metadata records and the exact 19 chat-compatible IDs, forced sync, selected-model refresh, all three specialized metadata inspections, and direct remote streaming inference. Mapper regressions cover API additions/removals, empty catalogs, missing metadata, and non-chat exclusion. Counts reflect that API response, not fixed limits. The existing local profile has one rejected and one valid router credential; verification used an isolated profile and left both unchanged.

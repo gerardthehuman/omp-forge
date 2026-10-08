@@ -7,7 +7,7 @@ function model() {
     name: "Reasoner",
     context_length: 1000000,
     top_provider: { max_completion_tokens: 128000 },
-    architecture: { input_modalities: ["text", "image", "audio", "file"] },
+    architecture: { input_modalities: ["text", "image", "audio", "file"], output_modalities: ["text"] },
     supported_parameters: ["reasoning", "reasoning_effort", "tools"],
     reasoning: { supported_efforts: ["high", "none", "low", "future-effort"] },
     pricing: { prompt: "0.000002", completion: "0.00001", input_cache_read: "0.0000002" },
@@ -41,8 +41,27 @@ test("does not turn missing or invalid paid prices into free models", () => {
   expect(mapOpenRouterModels([free])[0].cost.input).toBe(0);
 });
 
-test("requires every curated ID and excludes unrelated upstream models", () => {
+test("router API additions and removals control availability independently of metadata", () => {
   const row = model();
-  expect(selectCatalog({ data: [row, { id: "unrelated/model" }] }, [row.id])).toEqual([row]);
-  expect(() => selectCatalog({ data: [row] }, [row.id, "missing/model"])).toThrow("Curated model missing");
+  const added = { ...model(), id: "new/model" };
+  const upstream = { data: [row, added, { id: "unrelated/model" }] };
+  expect(selectCatalog(upstream, [row.id])).toEqual([row]);
+  expect(selectCatalog(upstream, [added.id, added.id])).toEqual([added]);
+  expect(selectCatalog(upstream, [])).toEqual([]);
+  expect(() => selectCatalog(upstream, ["missing/model"])).toThrow("Router model missing from OpenRouter metadata");
+});
+
+test("retains specialized metadata without exposing non-chat models in the picker", () => {
+  const chat = model();
+  const specialized = ["image", "video", "decisions"].map(output => ({
+    id: `example/${output}`,
+    architecture: { input_modalities: ["text"], output_modalities: [output] },
+  }));
+  const data = [chat, ...specialized];
+  const selected = selectCatalog({ data }, data.map(row => row.id));
+  expect(selected).toEqual(data);
+  expect(mapOpenRouterModels(selected).map(row => row.id)).toEqual([chat.id]);
+  expect(mapOpenRouterModels(specialized)).toEqual([]);
+  delete chat.architecture.output_modalities;
+  expect(() => mapOpenRouterModels([chat])).toThrow("Missing OpenRouter output modalities");
 });
