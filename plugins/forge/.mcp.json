@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "forge": {
+      "type": "stdio",
+      "command": "bun",
+      "args": ["${OMP_PLUGIN_ROOT}/dist/mcp.mjs"]
+    }
+  }
+}

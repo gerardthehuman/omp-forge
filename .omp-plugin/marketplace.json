@@ -1,0 +1,16 @@
+{
+  "name": "omp-forge",
+  "owner": { "name": "Gerard Balaoro" },
+  "metadata": {
+    "description": "Forge integrations and plugins for OMP"
+  },
+  "plugins": [
+    {
+      "name": "forge",
+      "description": "Forge provider, live model metadata, and MCP",
+      "version": "1.0.1",
+      "source": "./plugins/forge",
+      "category": "development"
+    }
+  ]
+}
