@@ -7,3 +7,4 @@
 - Expose complete metadata with `/forge models [id]` and refresh models with `/forge refresh`.
 - Connect Forge MCP through a bundled stdio bridge without copying credentials into OMP configuration.
 - Distribute compiled TypeScript bundles through the `omp-forge` marketplace.
+- Include dependency license notices in the generated MCP bundle instead of a separate file.

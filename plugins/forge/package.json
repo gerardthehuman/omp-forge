@@ -5,7 +5,7 @@
   "description": "Forge provider, live model metadata, and MCP for OMP",
   "type": "module",
   "scripts": {
-    "build": "bun build src/index.ts src/mcp.ts --target=bun --format=esm --packages=bundle --env=disable --minify-syntax --outdir=dist",
+    "build": "bun build.ts",
     "typecheck": "tsc --project tsconfig.json"
   },
   "devDependencies": {

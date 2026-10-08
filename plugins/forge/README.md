@@ -4,7 +4,7 @@ The `forge` plugin registers desktop-provided models and metadata, plus Forge MC
 
 ## Setup
 
-Run Forge Desktop so it writes `~/.forge/server.json`. Set `FORGE_SERVER_FILE` before starting OMP to override the path. Never commit the descriptor—it contains credentials.
+Run Forge Desktop so it writes `~/.forge/server.json`. Set `FORGE_SERVER_FILE` before starting OMP to override the path. Never commit the descriptor: it contains credentials.
 
 ## Usage
 
@@ -25,3 +25,7 @@ With OMP 18.6.1, pass model and thinking separately; the combined selector can f
 ```sh
 omp --model forge/openai/gpt-6-luna --thinking low
 ```
+
+## Bundled licenses
+
+The build reads each bundled dependency's installed `LICENSE` file and appends its contents to `dist/mcp.js`. Missing license files fail the build.

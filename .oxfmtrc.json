@@ -1,4 +1,4 @@
 {
   "$schema": "./node_modules/oxfmt/configuration_schema.json",
-  "ignorePatterns": ["**/dist/**", "bun.lock", "AGENTS.md", "plugins/forge/THIRD_PARTY_NOTICES.md"]
+  "ignorePatterns": ["**/dist/**", "bun.lock", "AGENTS.md"]
 }

@@ -4,11 +4,11 @@ A standalone `forge-router` provider at `https://forge.forgeworkspace.dev/functi
 
 ## Setup
 
-1. Restart OMP, run `/login`, and select **Forge Router (API key)**.
+1. Restart OMP, run `/login`, and select Forge Router (API key).
 2. Enter your key in the masked prompt; login validates it against the router.
 3. Run `/forge-router sync` to populate the model picker.
 
-OMP stores the credential; `/logout` removes it. Keys never enter plugin files or OpenRouter requests. Use the terminal UI for login—OMP RPC refuses secret prompts. There is no environment-key fallback.
+OMP stores the credential; `/logout` removes it. Keys never enter plugin files or OpenRouter requests. Use the terminal UI for login because OMP RPC refuses secret prompts. There is no environment-key fallback.
 
 `FORGE_ROUTER_BASE_URL` overrides the URL before startup; include its `/v1` path. Remove any obsolete `providers.forge-router` block from `agent/models.yml` after migrating its key into OMP, since a hardcoded key can override saved credentials.
 
@@ -33,7 +33,7 @@ Use `/extended-context on` for full advertised windows where OMP caps context at
 - Every ID requires upstream metadata; chat models also require valid prices, modalities, and limits. Invalid discovery preserves the previous catalog rather than inventing defaults. Empty or non-chat-only catalogs clear the picker.
 - OMP maps names, limits, text/image inputs, tools, reasoning efforts, and token/cache prices with the first context-price tier. Extra fields remain available through metadata inspection.
 
-**Prices are OpenRouter estimates, not Forge billing.** Costs convert dollars/token to dollars/million tokens.
+Prices are OpenRouter estimates, not Forge billing. Costs convert dollars/token to dollars/million tokens.
 
 ## Caching
 

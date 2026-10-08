@@ -2,8 +2,8 @@
 
 Forge plugins for OMP:
 
-- [**forge**](plugins/forge/README.md) — Forge Desktop models, metadata, and MCP.
-- [**forge-router**](plugins/forge-router/README.md) — direct router access with API-key login; no desktop dependency.
+- [forge](plugins/forge/README.md): Forge Desktop models, metadata, and MCP.
+- [forge-router](plugins/forge-router/README.md): direct router access with API-key login. No desktop dependency.
 
 ## Install
 
@@ -35,6 +35,6 @@ bun run check  # Type-aware lint, TypeScript diagnostics, format check
 bun run fix    # Safe lint autofixes and formatting
 ```
 
-Lefthook runs read-only `check` before commits. Rebuild and commit `dist/` after source changes; bundles are excluded from lint and formatting. Keep package and marketplace versions aligned and preserve [bundled licenses](plugins/forge/THIRD_PARTY_NOTICES.md).
+Lefthook runs read-only `check` before commits. Rebuild and commit `dist/` after source changes. Bundles are excluded from lint and formatting. Keep package and marketplace versions aligned.
 
 For local testing, use `omp plugin link /path/to/omp-forge/plugins/<plugin>` instead of a marketplace installation of that plugin. Do not register both forms.
