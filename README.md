@@ -1,14 +1,18 @@
 # omp-forge
 
-A Git-hosted marketplace for Forge integrations and OMP plugins. The first plugin, `forge`, provides the Forge model provider, live model metadata, and Forge MCP in one package.
+A Git-hosted marketplace for Forge integrations and OMP plugins:
+
+- `forge`: desktop-connected provider, live Forge metadata, and Forge MCP.
+- `forge-router`: direct remote provider, masked API-key login, and OpenRouter metadata sync. No desktop or MCP dependency.
 
 ## Requirements
 
 - OMP. Verified with 18.6.1.
 - Bun 1.3 or newer on PATH. Bundle built and exercised with Bun 1.4.2.
-- A running Forge instance that writes `~/.forge/server.json`.
+- The `forge` plugin requires a running Forge instance that writes `~/.forge/server.json`.
+- The `forge-router` plugin requires a router API key and access to its direct URL. See [router setup and metadata sync](plugins/forge-router/README.md).
 
-The plugin reads the local descriptor at runtime. Do not commit that file: it contains credentials. Set `FORGE_SERVER_FILE` to use a different descriptor path.
+The desktop plugin reads the local descriptor at runtime. Do not commit that file: it contains credentials. Set `FORGE_SERVER_FILE` to use a different descriptor path.
 
 ## Install
 
@@ -41,6 +45,16 @@ omp plugin link ~/Projects/omp-forge/plugins/forge
 ```
 
 Do not install `forge@omp-forge` alongside that link: both use the `omp-forge` package name. To switch, remove the link registration with `omp plugin uninstall omp-forge`, then install `forge@omp-forge`.
+
+### Standalone router
+
+```sh
+omp plugin install forge-router@omp-forge
+```
+
+Restart OMP, run `/login`, choose **Forge Router (API key)**, and enter your key. `/forge-router sync` updates OpenRouter metadata for the curated 11 models. `/forge-router models [id]` shows the raw metadata. Router prices are upstream estimates, not Forge billing.
+
+For local development: `omp plugin link ~/Projects/omp-forge/plugins/forge-router`. This machine links both plugins. The existing router credential was migrated into OMP's native storage and the obsolete manual `models.yml` provider removed. Model roles are unchanged.
 
 ## Usage
 
@@ -78,6 +92,12 @@ plugins/forge/                 Forge plugin package
   dist/mcp.mjs                 Committed, bundled MCP runtime
   .mcp.json                    Plugin-owned MCP configuration
   THIRD_PARTY_NOTICES.md        Bundled dependency licenses
+plugins/forge-router/          Standalone router package (no runtime dependencies)
+  index.mjs                    Provider, native API-key login, and sync command
+  roster.json                  Curated supported router IDs
+  catalog.json                 Generated OpenRouter metadata snapshot
+  catalog.mjs                  Public metadata sync and user cache
+  models.mjs                   OpenRouter → OMP metadata mapping
 ```
 
 ## Build
@@ -105,7 +125,7 @@ When updating bundled dependencies, update `THIRD_PARTY_NOTICES.md` to preserve 
 
 1. Bump the changed plugin's package version and matching catalog entry version.
 2. Rebuild and commit its distributable files and changelog.
-3. Verify a clean marketplace installation, real model inference, refresh, and MCP.
+3. Verify a clean marketplace installation and real model inference. Exercise metadata sync for the router and refresh/MCP for the desktop plugin.
 4. Push to GitHub and tag the release.
 
 Users refresh the catalog and upgrade separately:
@@ -130,3 +150,5 @@ Release 1.0.1 was exercised with OMP 18.6.1 and Bun 1.4.2:
 - The relocated development link passed model, metadata, and refresh smoke checks.
 
 Model and tool counts reflect that running Forge instance, not fixed plugin limits.
+
+Router release 1.0.0 passed clean marketplace installation, masked login callback and native API-key persistence across restart, all 11 mapped models against OpenRouter, forced sync, raw metadata inspection, and direct remote streaming inference without a desktop descriptor. Offline/partial-sync preservation and metadata boundary checks also passed.
