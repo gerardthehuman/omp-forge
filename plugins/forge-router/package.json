@@ -1,6 +1,6 @@
 {
   "name": "omp-forge-router",
-  "version": "1.0.2",
+  "version": "1.0.0",
   "private": true,
   "description": "Direct Forge router provider with API-key login and OpenRouter metadata sync",
   "type": "module",

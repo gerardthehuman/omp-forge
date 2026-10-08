@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Reset the package and marketplace version to `1.0.0`; retain prior development history below.
+
 ## 1.0.2
 
 - Move provider, metadata, descriptor access, and MCP bridge sources to strict TypeScript under `src/`.

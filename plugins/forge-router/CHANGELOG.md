@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Reset the package and marketplace version to `1.0.0`; retain prior development history below.
+
 ## 1.0.2
 
 - Move provider, catalog discovery, mapper, and existing regressions to strict TypeScript under `src/`.

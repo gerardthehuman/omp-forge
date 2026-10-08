@@ -17,14 +17,14 @@
     },
     "plugins/forge": {
       "name": "omp-forge",
-      "version": "1.0.2",
+      "version": "1.0.0",
       "devDependencies": {
         "@modelcontextprotocol/sdk": "1.29.0",
       },
     },
     "plugins/forge-router": {
       "name": "omp-forge-router",
-      "version": "1.0.2",
+      "version": "1.0.0",
     },
   },
   "packages": {
