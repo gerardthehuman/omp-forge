@@ -6,9 +6,9 @@
   ],
   "type": "module",
   "scripts": {
-    "build": "turbo run build",
-    "typecheck": "turbo run typecheck",
-    "test": "turbo run test",
+    "build": "bun run typecheck && bun run --filter './plugins/*' build",
+    "typecheck": "bun run --filter './plugins/*' typecheck",
+    "test": "bun run --filter './plugins/*' --if-present test",
     "check": "oxlint --type-aware --type-check . && oxfmt --check .",
     "fix": "oxlint --type-aware --type-check --fix . && oxfmt --write .",
     "postinstall": "lefthook install"
@@ -21,7 +21,6 @@
     "oxfmt": "0.72.0",
     "oxlint": "1.87.0",
     "oxlint-tsgolint": "7.0.2003",
-    "turbo": "2.11.7",
     "typescript": "7.0.2"
   },
   "engines": {

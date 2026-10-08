@@ -64,6 +64,6 @@ bun run test
 
 ## Development
 
-TypeScript sources live in `src/`; the OMP manifest loads committed `dist/index.js`. From the repository root, run `bun install --frozen-lockfile`, then `bun run build`. Turbo type-checks both plugins before Bun bundles their runtime entrypoints. `bun run typecheck` and `bun run test` run the workspace checks independently.
+TypeScript sources live in `src/`; the OMP manifest loads committed `dist/index.js`. From the repository root, run `bun install --frozen-lockfile`, then `bun run build`. Bun's workspace commands type-check both plugins before bundling their runtime entrypoints. `bun run typecheck` and `bun run test` run the workspace checks independently.
 
 Release 1.0.2's compiled router was exercised from a snapshot without sources or dependencies: native login, live sync (22 metadata records, 19 chat models), non-chat metadata inspection, and streaming inference after restart passed.

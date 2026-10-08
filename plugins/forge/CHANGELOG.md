@@ -3,10 +3,11 @@
 ## 1.0.2
 
 - Move provider, metadata, descriptor access, and MCP bridge sources to strict TypeScript under `src/`.
-- Build committed `dist/index.js` and `dist/mcp.js` with Bun through the shared Turbo workspace; keep OMP API dependencies type-only.
+- Build committed `dist/index.js` and `dist/mcp.js` through the shared Bun workspace; keep OMP API dependencies type-only.
 - Replace the package-local lockfile with the root workspace lockfile; point OMP and MCP manifests at compiled entrypoints.
 - Verify the compiled provider's 17 live models, metadata inspection and refresh, and bundled MCP's 131-tool discovery and EOF cleanup from dependency-free snapshots.
 - Add workspace Oxlint type-aware linting and type checks, Oxfmt formatting, and a Lefthook pre-commit quality gate. Narrow MCP diagnostic codes to numbers before interpolation.
+- Remove Turbo in favor of native Bun workspace scripts; keep strict typechecking before builds.
 
 ## 1.0.1
 

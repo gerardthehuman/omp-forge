@@ -99,10 +99,9 @@ plugins/forge-router/          Standalone router package (no runtime dependencie
   src/models.ts                OpenRouter → OMP metadata mapping
   src/models.test.ts           Metadata regression tests
   dist/index.js                Committed provider runtime
-package.json                  Bun workspace and Turbo commands
+package.json                  Bun workspace commands
 bun.lock                      Pinned workspace dependencies
 tsconfig.json                 Shared strict TypeScript settings
-turbo.json                    Cached build, typecheck, and test tasks
 ```
 
 ## Build
@@ -116,7 +115,7 @@ bun run typecheck
 bun run test
 ```
 
-Turbo runs each plugin's package scripts and caches `dist/**`. Builds require successful strict TypeScript checks, then Bun bundles the runtime entrypoints. OMP API packages are development-only type dependencies; no OMP runtime is bundled. Tests run the existing router regressions.
+Bun runs each plugin's package scripts through `--filter './plugins/*'`. The root build first runs strict TypeScript checks for both plugins, then bundles their runtime entrypoints. OMP API packages are development-only type dependencies; no OMP runtime is bundled. The test command skips packages without a test script and runs the existing router regressions. No separate task runner or build cache is required.
 
 Keep both plugins' `dist/` files in Git. OMP 18.6.1's marketplace installer copies plugin files but does not run a package-manager install. Environment variables are not inlined into the bundles. After editing TypeScript, run `bun run build` before starting a linked plugin.
 
@@ -175,4 +174,4 @@ Model and tool counts reflect that running Forge instance, not fixed plugin limi
 
 Router release 1.0.1 passed fresh-profile native secret-login validation, API-key persistence across restart, live API discovery of 22 metadata records and the exact 19 chat-compatible IDs, forced sync, selected-model refresh, all three specialized metadata inspections, and direct remote streaming inference. Mapper regressions cover API additions/removals, empty catalogs, missing metadata, and non-chat exclusion. Counts reflect that API response, not fixed limits. The existing local profile has one rejected and one valid router credential; verification used an isolated profile and left both unchanged.
 
-Release 1.0.2 migrated both plugins and the router regressions to strict TypeScript. Frozen workspace installation, Turbo build/typecheck/test, and build cache reuse passed. Dist-only snapshots (no TypeScript or dependencies) loaded in OMP: desktop model inspection/refresh, MCP initialization and 131-tool discovery with EOF cleanup, and router native login/discovery plus streaming inference after restart all passed.
+Release 1.0.2 migrated both plugins and the router regressions to strict TypeScript. Frozen workspace installation and build/typecheck/test passed. Dist-only snapshots (no TypeScript or dependencies) loaded in OMP: desktop model inspection/refresh, MCP initialization and 131-tool discovery with EOF cleanup, and router native login/discovery plus streaming inference after restart all passed.
