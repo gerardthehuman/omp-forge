@@ -18,14 +18,15 @@ export default function forgeRouterPlugin(pi: ExtensionAPI) {
   }
 
   function catalogSummary() {
-    const specialized = catalog!.data.filter(
-      (model) => !model.architecture?.output_modalities?.includes("text"),
-    );
-    const chatCount = catalog!.data.length - specialized.length;
-    const detail = specialized.length
-      ? ` Non-chat models (metadata only): ${specialized.map((model) => `${model.id} [${model.architecture!.output_modalities!.join(", ")}]`).join("; ")}.`
+    const registered = mapOpenRouterModels(catalog!.data);
+    const chatCount = registered.filter((model) => model.api === "openai-completions").length;
+    const judgeCount = registered.length - chatCount;
+    const registeredIds = new Set(registered.map((model) => model.id));
+    const unsupported = catalog!.data.filter((model) => !registeredIds.has(model.id));
+    const detail = unsupported.length
+      ? ` Unavailable native roles: ${unsupported.map((model) => `${model.id} [${model.architecture!.output_modalities!.join(", ")}]`).join("; ")}. Forge Router has no compatible image/video endpoints; OMP has no video role.`
       : "";
-    return `${chatCount} chat models from ${catalog!.data.length} API-discovered models.${detail}`;
+    return `${chatCount} chat and ${judgeCount} judge models from ${catalog!.data.length} API-discovered models.${detail}`;
   }
 
   async function discover(key: string | undefined) {
@@ -65,8 +66,7 @@ export default function forgeRouterPlugin(pi: ExtensionAPI) {
   });
 
   pi.registerCommand(PROVIDER, {
-    description:
-      "Forge router: /forge-router models [id]; /forge-router sync API roster and OpenRouter metadata",
+    description: "Forge router: /forge-router models [id]; /forge-router sync",
     handler: async (args, ctx) => {
       const [command, ...rest] = args.trim().split(/\s+/);
       if (command === "models" && rest.length <= 1) {
@@ -87,10 +87,12 @@ export default function forgeRouterPlugin(pi: ExtensionAPI) {
             return;
           }
           const usage =
-            rest.length &&
-            "architecture" in model &&
-            !model.architecture?.output_modalities?.includes("text")
-              ? "\nNon-chat model: metadata only; not registered in OMP's chat picker."
+            rest.length && "architecture" in model
+              ? model.architecture?.output_modalities?.includes("decisions")
+                ? "\nNative judge model: available to the Judge role, not the chat picker."
+                : !model.architecture?.output_modalities?.includes("text")
+                  ? "\nNon-chat model: metadata only; no compatible Forge endpoint/native OMP role."
+                  : ""
               : "";
           show(
             `Forge Router metadata — OpenRouter upstream estimates, fetched ${catalog!.fetchedAt}; router discovered ${catalog!.discoveredAt}\n${catalogSummary()}${usage}\n\n\`\`\`json\n${JSON.stringify(model, null, 2)}\n\`\`\``,
@@ -139,7 +141,7 @@ export default function forgeRouterPlugin(pi: ExtensionAPI) {
         return;
       }
       show(
-        "/login → Forge Router (API key) — save your router key in OMP.\n/forge-router models [id] — inspect all API-discovered models, including non-chat metadata.\n/forge-router sync — refresh API availability and all-modality OpenRouter metadata; register text-output models in the chat picker.\nOMP caches discovered chat models for 24 hours and preserves its last catalog when discovery fails. New installations require login and a successful online discovery. Forge Desktop is not required.\nUse /extended-context on for full advertised context windows. Prices are OpenRouter estimates, not Forge billing.",
+        "/login → Forge Router (API key) — save your router key in OMP.\n/forge-router models [id] — inspect all API-discovered models, including non-chat metadata.\n/forge-router sync — refresh API availability and all-modality OpenRouter metadata; register chat and native judge models.\nAssign Jev to the Judge role in OMP's model browser; it stays out of chat. Image/video metadata remains inspectable, but Forge has no compatible native generation endpoints and OMP has no video role.\nOMP caches discovered models for 24 hours and preserves its last catalog when discovery fails. New installations require login and a successful online discovery. Forge Desktop is not required.\nUse /extended-context on for full advertised context windows. Prices are OpenRouter estimates, not Forge billing.",
       );
     },
   });

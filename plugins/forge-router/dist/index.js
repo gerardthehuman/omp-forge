@@ -46,7 +46,7 @@ function mapOpenRouterModels(data) {
     let output = model.architecture?.output_modalities;
     if (!Array.isArray(output) || output.length === 0)
       throw Error(`Missing OpenRouter output modalities: ${model.id}`);
-    return output.includes("text");
+    return output.includes("text") || output.includes("decisions");
   }).map((model) => {
     let parameters = model.supported_parameters ?? [], reasoning = parameters.includes("reasoning") || parameters.includes("reasoning_effort"), efforts = OMP_EFFORTS.filter((effort) => model.reasoning?.supported_efforts?.includes(effort)), input = model.architecture?.input_modalities?.filter((type) => type === "text" || type === "image");
     if (!input?.includes("text"))
@@ -79,6 +79,7 @@ function mapOpenRouterModels(data) {
     };
     return {
       id: model.id,
+      api: model.architecture.output_modalities.includes("decisions") ? "openrouter-decisions" : "openai-completions",
       name: model.name,
       reasoning,
       thinking: reasoning && efforts.length ? { mode: "effort", efforts } : void 0,
@@ -180,8 +181,8 @@ function forgeRouterPlugin(pi) {
     pi.sendMessage({ customType: PROVIDER, content, display: !0 }, { triggerTurn: !1 });
   }
   function catalogSummary() {
-    let specialized = catalog.data.filter((model) => !model.architecture?.output_modalities?.includes("text")), chatCount = catalog.data.length - specialized.length, detail = specialized.length ? ` Non-chat models (metadata only): ${specialized.map((model) => `${model.id} [${model.architecture.output_modalities.join(", ")}]`).join("; ")}.` : "";
-    return `${chatCount} chat models from ${catalog.data.length} API-discovered models.${detail}`;
+    let registered = mapOpenRouterModels(catalog.data), chatCount = registered.filter((model) => model.api === "openai-completions").length, judgeCount = registered.length - chatCount, registeredIds = new Set(registered.map((model) => model.id)), unsupported = catalog.data.filter((model) => !registeredIds.has(model.id)), detail = unsupported.length ? ` Unavailable native roles: ${unsupported.map((model) => `${model.id} [${model.architecture.output_modalities.join(", ")}]`).join("; ")}. Forge Router has no compatible image/video endpoints; OMP has no video role.` : "";
+    return `${chatCount} chat and ${judgeCount} judge models from ${catalog.data.length} API-discovered models.${detail}`;
   }
   async function discover(key) {
     try {
@@ -212,7 +213,7 @@ function forgeRouterPlugin(pi) {
     },
     fetchDynamicModels: discover
   }), pi.registerCommand(PROVIDER, {
-    description: "Forge router: /forge-router models [id]; /forge-router sync API roster and OpenRouter metadata",
+    description: "Forge router: /forge-router models [id]; /forge-router sync",
     handler: async (args, ctx) => {
       let [command, ...rest] = args.trim().split(/\s+/);
       if (command === "models" && rest.length <= 1) {
@@ -228,8 +229,9 @@ function forgeRouterPlugin(pi) {
             show(`Model not returned by Forge Router: ${rest[0]}. Use /forge-router sync to refresh availability.`);
             return;
           }
-          let usage = rest.length && "architecture" in model && !model.architecture?.output_modalities?.includes("text") ? `
-Non-chat model: metadata only; not registered in OMP's chat picker.` : "";
+          let usage = rest.length && "architecture" in model ? model.architecture?.output_modalities?.includes("decisions") ? `
+Native judge model: available to the Judge role, not the chat picker.` : !model.architecture?.output_modalities?.includes("text") ? `
+Non-chat model: metadata only; no compatible Forge endpoint/native OMP role.` : "" : "";
           show(`Forge Router metadata \u2014 OpenRouter upstream estimates, fetched ${catalog.fetchedAt}; router discovered ${catalog.discoveredAt}
 ${catalogSummary()}${usage}
 
@@ -270,8 +272,9 @@ ${JSON.stringify(model, null, 2)}
       }
       show(`/login \u2192 Forge Router (API key) \u2014 save your router key in OMP.
 /forge-router models [id] \u2014 inspect all API-discovered models, including non-chat metadata.
-/forge-router sync \u2014 refresh API availability and all-modality OpenRouter metadata; register text-output models in the chat picker.
-OMP caches discovered chat models for 24 hours and preserves its last catalog when discovery fails. New installations require login and a successful online discovery. Forge Desktop is not required.
+/forge-router sync \u2014 refresh API availability and all-modality OpenRouter metadata; register chat and native judge models.
+Assign Jev to the Judge role in OMP's model browser; it stays out of chat. Image/video metadata remains inspectable, but Forge has no compatible native generation endpoints and OMP has no video role.
+OMP caches discovered models for 24 hours and preserves its last catalog when discovery fails. New installations require login and a successful online discovery. Forge Desktop is not required.
 Use /extended-context on for full advertised context windows. Prices are OpenRouter estimates, not Forge billing.`);
     }
   });

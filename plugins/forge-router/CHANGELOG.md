@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Register decision-output models with the native OpenRouter decisions API for OMP's Judge role, excluded from chat.
+- Report chat/judge registration separately from unsupported media metadata.
+- Document the missing Forge image/video endpoints and OMP video role rather than expose unusable roles.
+
 ## 1.0.0
 
 - Add direct Forge Router access without Forge Desktop or MCP dependencies.

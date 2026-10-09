@@ -75,20 +75,27 @@ test("router API additions and removals control availability independently of me
   );
 });
 
-test("retains specialized metadata without exposing non-chat models in the picker", () => {
+test("registers decisions through the judge API without routing media through chat", () => {
   const chat = model();
-  const specialized = ["image", "video", "decisions"].map((output) => ({
+  const decision = {
+    ...model(),
+    id: "typesafe/jev-1.13",
+    architecture: { input_modalities: ["text"], output_modalities: ["decisions"] },
+  };
+  const media = ["image", "video"].map((output) => ({
     id: `example/${output}`,
     architecture: { input_modalities: ["text"], output_modalities: [output] },
   }));
-  const data = [chat, ...specialized];
-  const selected = selectCatalog(
-    { data },
-    data.map((row) => row.id),
-  );
-  expect(selected).toEqual(data);
-  expect(mapOpenRouterModels(selected).map((row) => row.id)).toEqual([chat.id]);
-  expect(mapOpenRouterModels(specialized)).toEqual([]);
+  const selected = selectCatalog({ data: [chat, decision, ...media] }, [
+    chat.id,
+    decision.id,
+    ...media.map((row) => row.id),
+  ]);
+  expect(mapOpenRouterModels(selected).map(({ id, api }) => ({ id, api }))).toEqual([
+    { id: chat.id, api: "openai-completions" },
+    { id: decision.id, api: "openrouter-decisions" },
+  ]);
+  expect(mapOpenRouterModels(media)).toEqual([]);
   delete chat.architecture.output_modalities;
   expect(() => mapOpenRouterModels([chat])).toThrow("Missing OpenRouter output modalities");
 });

@@ -74,7 +74,7 @@ export function mapOpenRouterModels(data: OpenRouterModel[]): ModelDefinition[] 
       const output = model.architecture?.output_modalities;
       if (!Array.isArray(output) || output.length === 0)
         throw new Error(`Missing OpenRouter output modalities: ${model.id}`);
-      return output.includes("text");
+      return output.includes("text") || output.includes("decisions");
     })
     .map((model) => {
       const parameters = model.supported_parameters ?? [];
@@ -122,6 +122,9 @@ export function mapOpenRouterModels(data: OpenRouterModel[]): ModelDefinition[] 
       };
       return {
         id: model.id,
+        api: model.architecture!.output_modalities!.includes("decisions")
+          ? "openrouter-decisions"
+          : "openai-completions",
         name: model.name!,
         reasoning,
         thinking: reasoning && efforts.length ? { mode: "effort", efforts } : undefined,
