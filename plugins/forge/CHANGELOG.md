@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Add `/forge usage` to show available and total daily credits from the local Forge usage snapshot.
+- Present the bridge to Forge as the `opencode` MCP client so Forge delegates outbound-write confirmation to OMP's own approval flow instead of its desktop dialog.
 
 ## 1.0.0
 

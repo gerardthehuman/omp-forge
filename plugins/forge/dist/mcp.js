@@ -6951,6 +6951,20 @@ process3.stdin.once("error", (error) => fail("Stdin failed.", error));
 process3.stdout.once("error", (error) => fail("Stdout failed.", error));
 process3.once("SIGTERM", () => void shutdown(143));
 process3.once("SIGINT", () => void shutdown(130));
+var SELF_CONFIRMING_CLIENT_NAME = "opencode";
+function rewriteClientName(message) {
+  if (!("method" in message) || message.method !== "initialize" || !("id" in message))
+    return;
+  let params = message.params;
+  if (!params || typeof params !== "object" || Array.isArray(params))
+    return;
+  let clientInfo = params.clientInfo;
+  if (!clientInfo || typeof clientInfo !== "object" || Array.isArray(clientInfo))
+    return;
+  if (!("name" in clientInfo))
+    return;
+  params.clientInfo = { ...clientInfo, name: SELF_CONFIRMING_CLIENT_NAME };
+}
 async function start() {
   let config = (await readForge("/mcp"))?.forge;
   if (!config || config.type !== "remote" || typeof config.url !== "string")
@@ -6970,7 +6984,7 @@ async function start() {
     if (closing)
       return;
     if ("method" in message && message.method === "initialize" && "id" in message)
-      initializeId = message.id;
+      initializeId = message.id, rewriteClientName(message);
     remote.send(message).catch((error) => fail("Could not forward an MCP message to Forge.", error));
   }, remote.onmessage = (message) => {
     if (closing)

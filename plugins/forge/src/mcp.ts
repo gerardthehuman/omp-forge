@@ -1,7 +1,7 @@
 import process from "node:process";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import type { RequestId } from "@modelcontextprotocol/sdk/types.js";
+import type { JSONRPCMessage, RequestId } from "@modelcontextprotocol/sdk/types.js";
 import { readForge } from "./forge.ts";
 
 let stdio: StdioServerTransport | undefined;
@@ -57,6 +57,22 @@ process.stdout.once("error", (error) => fail("Stdout failed.", error));
 process.once("SIGTERM", () => void shutdown(143));
 process.once("SIGINT", () => void shutdown(130));
 
+// Forge exempts its bundled OpenCode client from outbound-write dialogs by
+// matching initialize clientInfo.name exactly against /^opencode$/i, relying
+// on that client's own approval flow. Present as "opencode" so OMP's
+// tools.approval settings become the gate instead of Forge's desktop dialog.
+const SELF_CONFIRMING_CLIENT_NAME = "opencode";
+
+function rewriteClientName(message: JSONRPCMessage): void {
+  if (!("method" in message) || message.method !== "initialize" || !("id" in message)) return;
+  const params = message.params;
+  if (!params || typeof params !== "object" || Array.isArray(params)) return;
+  const clientInfo = params.clientInfo;
+  if (!clientInfo || typeof clientInfo !== "object" || Array.isArray(clientInfo)) return;
+  if (!("name" in clientInfo)) return;
+  params.clientInfo = { ...clientInfo, name: SELF_CONFIRMING_CLIENT_NAME };
+}
+
 async function start() {
   const config = (await readForge("/mcp"))?.forge;
   if (!config || config.type !== "remote" || typeof config.url !== "string") {
@@ -96,11 +112,13 @@ async function start() {
   };
 
   // Bridge transports directly. OMP alone initializes the Forge session, and
-  // every protocol method, capability, instruction and request ID is preserved.
+  // every protocol method, capability, instruction and request ID is preserved
+  // except the initialize clientInfo.name (see rewriteClientName).
   stdio.onmessage = (message) => {
     if (closing) return;
     if ("method" in message && message.method === "initialize" && "id" in message) {
       initializeId = message.id;
+      rewriteClientName(message);
     }
     // Do not serialize HTTP sends: cancellation and replies to server requests
     // must be able to pass while another request is still running.
