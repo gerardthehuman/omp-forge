@@ -11,10 +11,13 @@ Run Forge Desktop so it writes `~/.forge/server.json`. Set `FORGE_SERVER_FILE` b
 ```text
 /forge models [id]   Inspect the catalog or one model's metadata
 /forge refresh       Refresh models and the selected model
+/forge usage         Show available and total daily credits
 /mcp reload          Reconnect MCP after restarting Forge
 ```
 
 After restarting Forge, run both refresh commands or restart OMP; `/forge refresh` alone does not reconnect MCP.
+
+`/forge usage` reads the current local Forge usage snapshot on demand. It reports available credits and the total daily credit allowance, not OMP's estimated token spend. Forge Desktop must be running with a ready usage snapshot. `FORGE_SERVER_FILE` also applies to balance lookup.
 
 - OMP receives names, token limits, text/image inputs, tool support, reasoning efforts, and token/cache pricing. Extra metadata remains inspectable through `/forge models`.
 - Use `/extended-context on` for full advertised windows where OMP caps context at a pricing threshold. Existing model roles and context preferences remain unchanged.

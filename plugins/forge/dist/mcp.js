@@ -6909,6 +6909,14 @@ async function readForge(route) {
     throw Error(`Forge ${route} returned HTTP ${response.status}.`);
   return response.json();
 }
+async function readForgeUsage() {
+  let usage = await readForge("/usage"), available = usage?.budget?.remainingCredits, total = usage?.budget?.dailyBudgetCredits;
+  if (typeof available !== "number" || !Number.isFinite(available) || available < 0 || typeof total !== "number" || !Number.isFinite(total) || total < 0)
+    throw Error("Forge returned an invalid balance.");
+  return `Forge daily credits
+Available: ${available.toFixed(2)} credits
+Total: ${total.toFixed(2)} credits`;
+}
 
 // src/mcp.ts
 var stdio, remote, closing = !1, initializeId;

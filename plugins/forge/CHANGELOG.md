@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Add `/forge usage` to show available and total daily credits from the local Forge usage snapshot.
+
 ## 1.0.0
 
 - Register Forge Desktop models with live metadata from the local server descriptor.

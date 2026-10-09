@@ -25,6 +25,14 @@ async function readForge(route) {
     throw Error(`Forge ${route} returned HTTP ${response.status}.`);
   return response.json();
 }
+async function readForgeUsage() {
+  let usage = await readForge("/usage"), available = usage?.budget?.remainingCredits, total = usage?.budget?.dailyBudgetCredits;
+  if (typeof available !== "number" || !Number.isFinite(available) || available < 0 || typeof total !== "number" || !Number.isFinite(total) || total < 0)
+    throw Error("Forge returned an invalid balance.");
+  return `Forge daily credits
+Available: ${available.toFixed(2)} credits
+Total: ${total.toFixed(2)} credits`;
+}
 
 // src/models.ts
 var OMP_EFFORTS = ["minimal", "low", "medium", "high", "xhigh", "max"];
@@ -112,9 +120,17 @@ async function forgePlugin(pi) {
     }), loadError = void 0, models.length;
   }
   pi.registerCommand("forge", {
-    description: "Forge catalog: /forge models [model-id]; /forge refresh after endpoint or catalog changes",
+    description: "Forge: /forge usage; /forge models [model-id]; /forge refresh",
     handler: async (args, ctx) => {
       let [command, ...rest] = args.trim().split(/\s+/);
+      if (command === "usage" && rest.length === 0) {
+        try {
+          show(await readForgeUsage());
+        } catch {
+          show("Forge balance unavailable. Start Forge Desktop and wait for its usage snapshot, then run /forge usage again.");
+        }
+        return;
+      }
       if (command === "models") {
         if (rest.length > 1) {
           show("Usage: /forge models [model-id]");
@@ -158,7 +174,8 @@ ${JSON.stringify(model, null, 2)}
         }
         return;
       }
-      show(`/forge models [model-id] \u2014 inspect current, complete Forge metadata as JSON.
+      show(`/forge usage \u2014 show available and total daily credits from Forge Desktop.
+/forge models [model-id] \u2014 inspect current, complete Forge metadata as JSON.
 /forge refresh \u2014 reload the Forge endpoint, credential and native model catalog; update the selected Forge model.
 After restarting Forge, run /forge refresh and /mcp reload, or restart OMP.
 OMP supports text/image inputs and one long-context pricing tier. Other Forge metadata remains available in /forge models. Use /extended-context on for full advertised context windows.

@@ -10,6 +10,7 @@ interface ForgeRoutes {
     forge: { options: { baseURL: string; apiKey: string; headers?: Record<string, string> } };
   };
   "/mcp": { forge?: { type: string; url: string; headers?: Record<string, string> } };
+  "/usage": { budget: { remainingCredits: number; dailyBudgetCredits: number } };
 }
 
 interface ServerDescriptor {
@@ -50,4 +51,20 @@ export async function readForge<Route extends keyof ForgeRoutes>(
   });
   if (!response.ok) throw new Error(`Forge ${route} returned HTTP ${response.status}.`);
   return response.json() as Promise<ForgeRoutes[Route]>;
+}
+
+export async function readForgeUsage(): Promise<string> {
+  const usage = await readForge("/usage");
+  const available = usage?.budget?.remainingCredits;
+  const total = usage?.budget?.dailyBudgetCredits;
+  if (
+    typeof available !== "number" ||
+    !Number.isFinite(available) ||
+    available < 0 ||
+    typeof total !== "number" ||
+    !Number.isFinite(total) ||
+    total < 0
+  )
+    throw new Error("Forge returned an invalid balance.");
+  return `Forge daily credits\nAvailable: ${available.toFixed(2)} credits\nTotal: ${total.toFixed(2)} credits`;
 }

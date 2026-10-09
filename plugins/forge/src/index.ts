@@ -1,5 +1,5 @@
 import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
-import { readForge } from "./forge.ts";
+import { readForge, readForgeUsage } from "./forge.ts";
 import { mapForgeModels } from "./models.ts";
 
 const UNAVAILABLE =
@@ -29,10 +29,19 @@ export default async function forgePlugin(pi: ExtensionAPI) {
   }
 
   pi.registerCommand("forge", {
-    description:
-      "Forge catalog: /forge models [model-id]; /forge refresh after endpoint or catalog changes",
+    description: "Forge: /forge usage; /forge models [model-id]; /forge refresh",
     handler: async (args, ctx) => {
       const [command, ...rest] = args.trim().split(/\s+/);
+      if (command === "usage" && rest.length === 0) {
+        try {
+          show(await readForgeUsage());
+        } catch {
+          show(
+            "Forge balance unavailable. Start Forge Desktop and wait for its usage snapshot, then run /forge usage again.",
+          );
+        }
+        return;
+      }
       if (command === "models") {
         if (rest.length > 1) {
           show("Usage: /forge models [model-id]");
@@ -89,7 +98,7 @@ export default async function forgePlugin(pi: ExtensionAPI) {
         return;
       }
       show(
-        "/forge models [model-id] — inspect current, complete Forge metadata as JSON.\n/forge refresh — reload the Forge endpoint, credential and native model catalog; update the selected Forge model.\nAfter restarting Forge, run /forge refresh and /mcp reload, or restart OMP.\nOMP supports text/image inputs and one long-context pricing tier. Other Forge metadata remains available in /forge models. Use /extended-context on for full advertised context windows.\nCLI on OMP 18.6.1: --model forge/openai/gpt-6-luna --thinking low (not --model forge/openai/gpt-6-luna:low).",
+        "/forge usage — show available and total daily credits from Forge Desktop.\n/forge models [model-id] — inspect current, complete Forge metadata as JSON.\n/forge refresh — reload the Forge endpoint, credential and native model catalog; update the selected Forge model.\nAfter restarting Forge, run /forge refresh and /mcp reload, or restart OMP.\nOMP supports text/image inputs and one long-context pricing tier. Other Forge metadata remains available in /forge models. Use /extended-context on for full advertised context windows.\nCLI on OMP 18.6.1: --model forge/openai/gpt-6-luna --thinking low (not --model forge/openai/gpt-6-luna:low).",
       );
     },
   });
