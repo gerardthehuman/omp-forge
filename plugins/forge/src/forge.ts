@@ -21,6 +21,16 @@ interface ServerDescriptor {
 
 export const serverFile = process.env.FORGE_SERVER_FILE || join(homedir(), ".forge", "server.json");
 
+/**
+ * Budget days are local midnights on the Forge side, so `/models` must carry
+ * this machine's IANA timezone. Without it the broker falls back to a UTC day
+ * and filters the catalog down to $-band models whenever that day is over
+ * budget.
+ */
+function localTimezone(): string {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+}
+
 export async function readForge<Route extends keyof ForgeRoutes>(
   route: Route,
 ): Promise<ForgeRoutes[Route]> {
@@ -44,7 +54,8 @@ export async function readForge<Route extends keyof ForgeRoutes>(
     throw new Error(`Invalid local Forge server descriptor: ${serverFile}`);
   }
   const authority = host === "::1" ? `[${host}]` : host;
-  const response = await fetch(`http://${authority}:${snapshot.port}${route}`, {
+  const tz = route === "/models" ? `?tz=${encodeURIComponent(localTimezone())}` : "";
+  const response = await fetch(`http://${authority}:${snapshot.port}${route}${tz}`, {
     headers: { Authorization: `Bearer ${snapshot.token}` },
     signal: AbortSignal.timeout(10000),
     redirect: "error",

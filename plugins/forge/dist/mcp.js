@@ -6888,6 +6888,9 @@ import { readFile } from "fs/promises";
 import { homedir } from "os";
 import { join } from "path";
 var serverFile = process.env.FORGE_SERVER_FILE || join(homedir(), ".forge", "server.json");
+function localTimezone() {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+}
 async function readForge(route) {
   let snapshot;
   try {
@@ -6900,7 +6903,7 @@ async function readForge(route) {
   let host = snapshot.host || "127.0.0.1";
   if (!["127.0.0.1", "localhost", "::1"].includes(host) || !Number.isInteger(snapshot.port) || snapshot.port < 1 || snapshot.port > 65535 || typeof snapshot.token !== "string" || !snapshot.token)
     throw Error(`Invalid local Forge server descriptor: ${serverFile}`);
-  let authority = host === "::1" ? `[${host}]` : host, response = await fetch(`http://${authority}:${snapshot.port}${route}`, {
+  let authority = host === "::1" ? `[${host}]` : host, tz = route === "/models" ? `?tz=${encodeURIComponent(localTimezone())}` : "", response = await fetch(`http://${authority}:${snapshot.port}${route}${tz}`, {
     headers: { Authorization: `Bearer ${snapshot.token}` },
     signal: AbortSignal.timeout(1e4),
     redirect: "error"

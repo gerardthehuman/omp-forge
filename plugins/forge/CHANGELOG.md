@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Send this machine's local timezone with `/models` requests so the broker counts the budget day by local midnight instead of UTC and no longer filters the catalog to $-band models whenever the UTC day is over budget.
 - Add `/forge usage` to show available and total daily credits from the local Forge usage snapshot.
 - Present the bridge to Forge as the `opencode` MCP client so Forge delegates outbound-write confirmation to OMP's own approval flow instead of its desktop dialog.
 
