@@ -1,4 +1,4 @@
-# presets
+# omp-model-presets
 
 Native OMP model presets with session-only activation by default. Uses OMP's existing `modelPresets` storage, lookup precedence, validation, and model resolver. No separate preset file and no automatic migration from third-party preset formats.
 

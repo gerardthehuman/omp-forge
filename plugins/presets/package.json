@@ -1,5 +1,5 @@
 {
-  "name": "omp-native-presets",
+  "name": "omp-model-presets",
   "version": "1.0.0",
   "private": true,
   "description": "Native model presets with session-only activation",
