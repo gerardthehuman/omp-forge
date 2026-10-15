@@ -18,6 +18,13 @@
       "version": "1.0.0",
       "source": "./plugins/forge-router",
       "category": "development"
+    },
+    {
+      "name": "presets",
+      "description": "Native model presets with session-only activation, completion, and picker",
+      "version": "1.0.0",
+      "source": "./plugins/presets",
+      "category": "development"
     }
   ]
 }

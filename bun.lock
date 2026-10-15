@@ -26,6 +26,10 @@
       "name": "omp-forge-router",
       "version": "1.0.0",
     },
+    "plugins/presets": {
+      "name": "omp-native-presets",
+      "version": "1.0.0",
+    },
   },
   "packages": {
     "@babel/helper-string-parser": ["@babel/helper-string-parser@7.29.7", "", {}, "sha512-Pb5ijPrZ89GDH8223L4UP8i6QApWxs04RbPQJTeWDV0/keR2E36MeKnyr6LYmUUvqRRI+Iv87SuF1W6ErINzYw=="],
@@ -519,6 +523,8 @@
     "omp-forge": ["omp-forge@workspace:plugins/forge"],
 
     "omp-forge-router": ["omp-forge-router@workspace:plugins/forge-router"],
+
+    "omp-native-presets": ["omp-native-presets@workspace:plugins/presets"],
 
     "on-finished": ["on-finished@2.4.1", "", { "dependencies": { "ee-first": "1.1.1" } }, "sha512-oVlzkg3ENAhCk2zdv7IJwd/QUD4z2RxRwpkcGY8psCVcCYZNq4wYnVWALHM+brtuJjePWiYF/ClmuDr8Ch5+kg=="],
 

@@ -4,6 +4,7 @@ Forge plugins for OMP:
 
 - [forge](plugins/forge/README.md): Forge Desktop models, metadata, and MCP.
 - [forge-router](plugins/forge-router/README.md): direct router access with API-key login. No desktop dependency.
+- [presets](plugins/presets/README.md): native model presets with session-only activation.
 
 ## Install
 
@@ -29,7 +30,7 @@ Use Bun 1.4.2 from the repository root:
 
 ```sh
 bun install --frozen-lockfile
-bun run build  # Typecheck and bundle both plugins
+bun run build  # Typecheck and bundle all plugins
 bun run test
 bun run check  # Type-aware lint, TypeScript diagnostics, format check
 bun run fix    # Safe lint autofixes and formatting
