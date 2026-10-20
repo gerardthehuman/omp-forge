@@ -48,4 +48,8 @@ Prices are OpenRouter estimates, not Forge billing. Costs convert dollars/token 
 
 ## Caching
 
-OMP caches discovered chat/judge models for 24 hours and retains the previous catalog on discovery failure. Upstream metadata is cached at `<OMP agent directory>/cache/forge-router/openrouter.json`, with cached fallback when OpenRouter is unavailable. `/forge-router sync` forces both discovery and metadata refresh.
+The plugin saves the last validated router catalog under `<OMP agent directory>/cache/forge-router/startup-catalog-<scope>.json`. Snapshots are scoped to the router endpoint and credential hash, contain no credential, and are written atomically with owner-only permissions.
+
+At startup, the plugin registers that catalog before OMP selects the default model, without waiting for network requests. Stale snapshots remain usable offline. After session startup, it refreshes router availability in the background and replaces the registered catalog. Failed refreshes retain the last catalog; successful empty catalogs clear it. Without a valid snapshot, an authenticated first launch discovers models before default-model selection.
+
+Public upstream metadata is cached separately in `openrouter.json` for 24 hours, with cached fallback when OpenRouter is unavailable. `/forge-router sync` forces both router discovery and upstream metadata refresh and updates the selected model. The plugin also publishes its snapshot into OMP's native model cache.

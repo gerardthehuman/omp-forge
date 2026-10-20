@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Register a credential- and endpoint-scoped cached catalog before default-model selection, then refresh availability after session startup without discarding models on network failure.
 - Register decision-output models with the native OpenRouter decisions API for OMP's Judge role, excluded from chat.
 - Report chat/judge registration separately from unsupported media metadata.
 - Document the missing Forge image/video endpoints and OMP video role rather than expose unusable roles.

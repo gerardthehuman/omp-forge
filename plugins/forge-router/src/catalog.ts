@@ -1,6 +1,6 @@
 import { readFile, mkdir, writeFile, rename, rm } from "node:fs/promises";
-import { dirname } from "node:path";
-import { randomUUID } from "node:crypto";
+import { dirname, join } from "node:path";
+import { createHash, randomUUID } from "node:crypto";
 import {
   mapOpenRouterModels,
   selectCatalog,
@@ -25,6 +25,57 @@ export interface DiscoveredCatalog {
 
 const OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models?output_modalities=all";
 const TTL_MS = 24 * 60 * 60 * 1000;
+
+function startupCatalogPath(cacheDirectory: string, baseUrl: string, key: string): string {
+  const scope = createHash("sha256")
+    .update(JSON.stringify([baseUrl, key]))
+    .digest("hex");
+  return join(cacheDirectory, `startup-catalog-${scope}.json`);
+}
+
+export async function readStartupCatalog(
+  cacheDirectory: string,
+  baseUrl: string,
+  key: string,
+): Promise<DiscoveredCatalog | undefined> {
+  try {
+    const cached = JSON.parse(
+      await readFile(startupCatalogPath(cacheDirectory, baseUrl, key), "utf8"),
+    );
+    if (
+      cached?.version !== 1 ||
+      typeof cached.fetchedAt !== "string" ||
+      !Number.isFinite(Date.parse(cached.fetchedAt)) ||
+      typeof cached.discoveredAt !== "string" ||
+      !Number.isFinite(Date.parse(cached.discoveredAt)) ||
+      !Array.isArray(cached.data) ||
+      cached.data.some((model: OpenRouterModel) => typeof model?.id !== "string" || !model.id)
+    ) {
+      return undefined;
+    }
+    mapOpenRouterModels(cached.data);
+    return { fetchedAt: cached.fetchedAt, discoveredAt: cached.discoveredAt, data: cached.data };
+  } catch {
+    return undefined;
+  }
+}
+
+export async function writeStartupCatalog(
+  cacheDirectory: string,
+  baseUrl: string,
+  key: string,
+  catalog: DiscoveredCatalog,
+): Promise<void> {
+  const cachePath = startupCatalogPath(cacheDirectory, baseUrl, key);
+  await mkdir(cacheDirectory, { recursive: true });
+  const temporary = `${cachePath}.${randomUUID()}.tmp`;
+  try {
+    await writeFile(temporary, JSON.stringify({ version: 1, ...catalog }) + "\n", { mode: 0o600 });
+    await rename(temporary, cachePath);
+  } finally {
+    await rm(temporary, { force: true });
+  }
+}
 
 export async function fetchRouterCatalog(
   baseUrl: string,
