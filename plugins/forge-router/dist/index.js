@@ -1,11 +1,11 @@
 // @bun
 // src/index.ts
-import { join } from "path";
+import { join as join2 } from "path";
 
 // src/catalog.ts
 import { readFile, mkdir, writeFile, rename, rm } from "fs/promises";
-import { dirname } from "path";
-import { randomUUID } from "crypto";
+import { dirname, join } from "path";
+import { createHash, randomUUID } from "crypto";
 
 // src/models.ts
 var OMP_EFFORTS = ["minimal", "low", "medium", "high", "xhigh", "max"];
@@ -107,6 +107,31 @@ function mapOpenRouterModels(data) {
 
 // src/catalog.ts
 var OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models?output_modalities=all", TTL_MS = 86400000;
+function startupCatalogPath(cacheDirectory, baseUrl, key) {
+  let scope = createHash("sha256").update(JSON.stringify([baseUrl, key])).digest("hex");
+  return join(cacheDirectory, `startup-catalog-${scope}.json`);
+}
+async function readStartupCatalog(cacheDirectory, baseUrl, key) {
+  try {
+    let cached = JSON.parse(await readFile(startupCatalogPath(cacheDirectory, baseUrl, key), "utf8"));
+    if (cached?.version !== 1 || typeof cached.fetchedAt !== "string" || !Number.isFinite(Date.parse(cached.fetchedAt)) || typeof cached.discoveredAt !== "string" || !Number.isFinite(Date.parse(cached.discoveredAt)) || !Array.isArray(cached.data) || cached.data.some((model) => typeof model?.id !== "string" || !model.id))
+      return;
+    return mapOpenRouterModels(cached.data), { fetchedAt: cached.fetchedAt, discoveredAt: cached.discoveredAt, data: cached.data };
+  } catch {
+    return;
+  }
+}
+async function writeStartupCatalog(cacheDirectory, baseUrl, key, catalog) {
+  let cachePath = startupCatalogPath(cacheDirectory, baseUrl, key);
+  await mkdir(cacheDirectory, { recursive: !0 });
+  let temporary = `${cachePath}.${randomUUID()}.tmp`;
+  try {
+    await writeFile(temporary, JSON.stringify({ version: 1, ...catalog }) + `
+`, { mode: 384 }), await rename(temporary, cachePath);
+  } finally {
+    await rm(temporary, { force: !0 });
+  }
+}
 async function fetchRouterCatalog(baseUrl, key, {
   fetcher = fetch,
   signal
@@ -175,8 +200,14 @@ async function discoverCatalog(baseUrl, key, cachePath, force = !1) {
 
 // src/index.ts
 var PROVIDER = "forge-router", DEFAULT_BASE_URL = "https://forge.forgeworkspace.dev/functions/v1/forge-api/v1";
-function forgeRouterPlugin(pi) {
-  let baseUrl = (process.env.FORGE_ROUTER_BASE_URL || DEFAULT_BASE_URL).replace(/\/+$/, ""), cachePath = join(pi.pi.getAgentDir(), "cache", "forge-router", "openrouter.json"), catalog, forceSync = !1, discoveryError;
+async function forgeRouterPlugin(pi) {
+  let baseUrl = (process.env.FORGE_ROUTER_BASE_URL || DEFAULT_BASE_URL).replace(/\/+$/, ""), cacheDirectory = join2(pi.pi.getAgentDir(), "cache", "forge-router"), cachePath = join2(cacheDirectory, "openrouter.json"), auth = await pi.pi.discoverAuthStorage(pi.pi.getAgentDir()), startupKey;
+  try {
+    startupKey = await auth.keys.peek(PROVIDER);
+  } finally {
+    auth.close();
+  }
+  let catalog = startupKey ? await readStartupCatalog(cacheDirectory, baseUrl, startupKey) : void 0, registered = !1, refresh;
   function show(content) {
     pi.sendMessage({ customType: PROVIDER, content, display: !0 }, { triggerTurn: !1 });
   }
@@ -184,34 +215,61 @@ function forgeRouterPlugin(pi) {
     let registered = mapOpenRouterModels(catalog.data), chatCount = registered.filter((model) => model.api === "openai-completions").length, judgeCount = registered.length - chatCount, registeredIds = new Set(registered.map((model) => model.id)), unsupported = catalog.data.filter((model) => !registeredIds.has(model.id)), detail = unsupported.length ? ` Unavailable native roles: ${unsupported.map((model) => `${model.id} [${model.architecture.output_modalities.join(", ")}]`).join("; ")}. Forge Router has no compatible image/video endpoints; OMP has no video role.` : "";
     return `${chatCount} chat and ${judgeCount} judge models from ${catalog.data.length} API-discovered models.${detail}`;
   }
-  async function discover(key) {
-    try {
-      let updated = await discoverCatalog(baseUrl, key, cachePath, forceSync), models = mapOpenRouterModels(updated.data);
-      return catalog = updated, discoveryError = void 0, models;
-    } catch (error) {
-      throw discoveryError = error instanceof Error ? error.message : String(error), error;
-    }
+  async function discover(key, force = !1) {
+    if (!key)
+      throw Error("Log in to Forge Router with /login before discovering models.");
+    let updated = await discoverCatalog(baseUrl, key, cachePath, force);
+    await writeStartupCatalog(cacheDirectory, baseUrl, key, updated), catalog = updated, register();
   }
-  pi.registerProvider(PROVIDER, {
-    baseUrl,
-    api: "openai-completions",
-    authHeader: !0,
-    oauth: {
-      name: "Forge Router (API key)",
-      async login(callbacks) {
-        let key = await callbacks.onPrompt({
-          message: `Forge Router API key for ${baseUrl}`,
-          secret: !0
-        });
-        if (!key?.trim())
-          throw Error("Forge Router login cancelled: no API key supplied.");
-        return await fetchRouterCatalog(baseUrl, key, {
-          fetcher: callbacks.fetch ?? fetch,
-          signal: callbacks.signal
-        }), key;
+  function register() {
+    if (registered)
+      pi.unregisterProvider(PROVIDER);
+    pi.registerProvider(PROVIDER, {
+      baseUrl,
+      api: "openai-completions",
+      authHeader: !0,
+      models: catalog ? mapOpenRouterModels(catalog.data) : [],
+      fetchDynamicModels: async () => catalog ? mapOpenRouterModels(catalog.data) : [],
+      oauth: {
+        name: "Forge Router (API key)",
+        async login(callbacks) {
+          let key = await callbacks.onPrompt({
+            message: `Forge Router API key for ${baseUrl}`,
+            secret: !0
+          });
+          if (!key?.trim())
+            throw Error("Forge Router login cancelled: no API key supplied.");
+          return await fetchRouterCatalog(baseUrl, key, {
+            fetcher: callbacks.fetch ?? fetch,
+            signal: callbacks.signal
+          }), await discover(key), key;
+        }
       }
-    },
-    fetchDynamicModels: discover
+    }), registered = !0;
+  }
+  if (!catalog && startupKey)
+    try {
+      await discover(startupKey);
+    } catch {}
+  if (!registered)
+    register();
+  pi.on("session_start", (_event, ctx) => {
+    ctx.setTimeout(() => {
+      refresh ??= (async () => {
+        try {
+          await ctx.modelRegistry.refreshRuntimeProviders("online");
+          let key = await ctx.modelRegistry.getApiKeyForProvider(PROVIDER, void 0, {
+            baseUrl
+          });
+          if (key)
+            await discover(key), await ctx.modelRegistry.refreshRuntimeProviders("online");
+        } catch (error) {
+          ctx.ui.notify(`Forge Router refresh failed; cached models retained: ${error instanceof Error ? error.message : String(error)}`, "warning");
+        } finally {
+          refresh = void 0;
+        }
+      })();
+    }, 0);
   }), pi.registerCommand(PROVIDER, {
     description: "Forge router: /forge-router models [id]; /forge-router sync",
     handler: async (args, ctx) => {
@@ -247,11 +305,11 @@ ${JSON.stringify(model, null, 2)}
         await ctx.waitForIdle();
         let current = ctx.models.current();
         try {
-          if (forceSync = !0, discoveryError = void 0, await ctx.modelRegistry.refreshRuntimeProviders("online"), discoveryError)
-            throw Error(discoveryError);
-          if (!catalog)
-            throw Error("Forge Router discovery did not return a catalog.");
-          if (current?.provider === PROVIDER) {
+          await refresh;
+          let key = await ctx.modelRegistry.getApiKeyForProvider(PROVIDER, void 0, {
+            baseUrl
+          });
+          if (await discover(key, !0), await ctx.modelRegistry.refreshRuntimeProviders("online"), current?.provider === PROVIDER) {
             let model = ctx.modelRegistry.find(PROVIDER, current.id);
             if (!model) {
               show(`Synced ${catalogSummary()} The selected model is no longer chat-compatible or served; select another with /model.`);
@@ -265,8 +323,6 @@ ${JSON.stringify(model, null, 2)}
           show(`Synced ${catalogSummary()} Prices are OpenRouter upstream estimates, not Forge billing.`);
         } catch (error) {
           show(`Forge Router sync failed: ${error instanceof Error ? error.message : String(error)}`);
-        } finally {
-          forceSync = !1;
         }
         return;
       }
@@ -274,7 +330,7 @@ ${JSON.stringify(model, null, 2)}
 /forge-router models [id] \u2014 inspect all API-discovered models, including non-chat metadata.
 /forge-router sync \u2014 refresh API availability and all-modality OpenRouter metadata; register chat and native judge models.
 Assign Jev to the Judge role in OMP's model browser; it stays out of chat. Image/video metadata remains inspectable, but Forge has no compatible native generation endpoints and OMP has no video role.
-OMP caches discovered models for 24 hours and preserves its last catalog when discovery fails. New installations require login and a successful online discovery. Forge Desktop is not required.
+The plugin registers its last validated catalog before default-model selection and refreshes availability after session startup. Failed refreshes retain cached models. New installations require login and a successful online discovery. Forge Desktop is not required.
 Use /extended-context on for full advertised context windows. Prices are OpenRouter estimates, not Forge billing.`);
     }
   });
